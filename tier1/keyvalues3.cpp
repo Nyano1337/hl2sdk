@@ -3,6 +3,11 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+
+#include <libmem/libmem_helper.h>
+#include <core/memory.h>
+
+
 // Nasty hack to redefine gcc's offsetof which doesn't like GET_OUTER macro
 #ifdef COMPILER_GCC
 #undef offsetof
@@ -42,36 +47,19 @@ void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 				CKeyValues3Context* context = GetContext();
 				if (context) {
 					m_pTable = context->AllocTable(nAllocSize);
+					if (!m_pTable) {
+						int nSize = 32;
+						if (nAllocSize > 0) {
+							nSize = 17 * nAllocSize + KV3Helpers::CalcAlighedChunk(nAllocSize) + 24;
+						}
+
+						m_pTable = (CKeyValues3Table*)g_pMemAlloc->RegionAlloc(58, nSize);
+					}
 				} else {
-					m_pTable = new CKeyValues3Table;
+					m_pTable = new CKeyValues3Table(nAllocSize);
 				}
 			} else {
-				/*if (allocElements > 0)
-					v10 = ((4 * allocElements + 7) & 0xFFFFFFF8) + 17 * allocElements + 24;
-				else
-					v10 = 32i64;
-				if ((int)v10 > validBytes) {
-					Plat_FatalErrorFunc(
-					"KeyValues3: pre-allocated table memory is too small for %u members (%u bytes available, %u bytes needed)\n",
-					(unsigned int)allocElements,
-					(unsigned int)validBytes,
-					v10);
-					__debugbreak();
-				}
-				*(_DWORD*)a3 = -1;
-				*(_QWORD*)(a3 + 8) = 0i64;
-				*(_DWORD*)(a3 + 16) = 0;
-				*(_WORD*)(a3 + 21) = 0;
-				*(_BYTE*)(a3 + 23) = 0;
-				v11 = allocElements;
-				if (allocElements > 255)
-					v11 = -1;
-				*(_BYTE*)(a3 + 20) = v11;
-				*(_DWORD*)(a3 + 4) = allocElements;
-				result = 2i64 * a5;
-				*(_QWORD*)pKV3 &= ~2ui64;
-				*(_QWORD*)pKV3 |= result;
-				*((_QWORD*)pKV3 + 1) = a3;*/
+
 			}
 			break;
 		}
@@ -1163,10 +1151,17 @@ void CKeyValues3Array::Purge(bool bClearingContext) {
 	// m_StaticBuffer.m_Elements.Purge();
 }
 
-CKeyValues3Table::CKeyValues3Table(int cluster_elem)
-	: m_pFastSearch(NULL), m_nCount(0), m_nInitialSize(KV3_TABLE_MAX_FIXED_MEMBERS), m_bIsDynamicallySized(false), m_Data{} {
+CKeyValues3Table::CKeyValues3Table(int nAllocSize, int cluster_elem)
+	: m_pFastSearch(NULL), m_nCount(0), m_bIsDynamicallySized(false), m_nUnk1(0), m_Data {} {
 	m_Chunk.m_nClusterElement = cluster_elem;
-	m_Chunk.m_nAllocatedChunks = KV3_TABLE_MAX_FIXED_MEMBERS;
+
+	if (nAllocSize > 255) {
+		m_nInitialSize = -1;
+		m_Chunk.m_nAllocatedChunks = nAllocSize;
+	} else {
+		m_nInitialSize = KV3_TABLE_MAX_FIXED_MEMBERS;
+		m_Chunk.m_nAllocatedChunks = KV3_TABLE_MAX_FIXED_MEMBERS;
+	}
 }
 
 inline void* CKeyValues3Table::Base() {
@@ -1256,16 +1251,7 @@ void CKeyValues3Table::EnableFastSearch() {
 	m_pFastSearch->m_ignores_counter = 0;
 }
 
-#include <libmem/libmem_helper.h>
-#include <core/memory.h>
-
 void CKeyValues3Table::EnsureMemberCapacity(int num, bool force, bool dont_move) {
-	//static auto fn = libmem::SignScan(/*"40 53 57 48 83 EC ? 8B 59"*/ "8B 47 ? 39 D0", LIB::server);
-	//if (fn) {
-	//	MEM::SDKCall<void>(fn, this, nullptr, num, force, dont_move);
-	//	return;
-	//}
-
 	auto nChunks = GetAllocatedChunks();
 	if (num <= nChunks) {
 		return;
@@ -1373,11 +1359,6 @@ KV3MemberId_t CKeyValues3Table::CreateMember(const CKV3MemberName& name, KeyValu
 
 	int nNewSize = m_nCount + 1;
 	if (nNewSize > KV3_TABLE_MAX_FIXED_MEMBERS) {
-		/*static auto fn = libmem::SignScan("55 41 89 C9 48 89 E5 41 57", LIB::server);
-		if (fn) {
-			MEM::SDKCall<void*>(fn, this, pKV3, &name, false);
-			return memberId;
-		}*/
 		EnsureMemberCapacity(nNewSize);
 	}
 

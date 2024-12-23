@@ -784,7 +784,7 @@ public:
 	typedef const char* Name_t;
 	typedef bool IsExternalName_t;
 
-	CKeyValues3Table(int cluster_elem = -1);
+	CKeyValues3Table(int nAllocSize = 0, int cluster_elem = -1);
 
 	// Gets the base address (can change when adding elements!)
 	void* Base();
@@ -884,6 +884,7 @@ public:
 	int m_nCount;
 	int8 m_nInitialSize;
 	bool m_bIsDynamicallySized;
+	int16 m_nUnk1;
 
 	union Data_t {
 		struct StaticBuffer_t {
