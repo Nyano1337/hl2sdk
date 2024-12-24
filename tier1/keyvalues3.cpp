@@ -27,6 +27,8 @@ KeyValues3::~KeyValues3() {
 	Free();
 };
 
+#include "tier0/memdbgoff.h"
+
 void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 	switch (GetTypeEx()) {
 		case KV3_TYPEEX_ARRAY: {
@@ -47,7 +49,6 @@ void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 					m_pArray = new CKeyValues3Array(nAllocSize);
 				}
 			} else {
-			
 			}
 			break;
 		}
@@ -69,7 +70,6 @@ void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 					m_pTable = new CKeyValues3Table(nAllocSize);
 				}
 			} else {
-
 			}
 			break;
 		}
@@ -88,6 +88,8 @@ void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 			break;
 	}
 }
+
+#include "tier0/memdbgon.h"
 
 void KeyValues3::Free(bool bClearingContext) {
 	switch (GetTypeEx()) {
@@ -1048,8 +1050,7 @@ KeyValues3& KeyValues3::operator=(const KeyValues3& src) {
 	return *this;
 }
 
-CKeyValues3Array::CKeyValues3Array(int nAllocSize, int cluster_elem)
-	: m_nCount(0), m_IsDynamicallySized(false), m_nUnk001(0), m_Data {} {
+CKeyValues3Array::CKeyValues3Array(int nAllocSize, int cluster_elem) : m_nCount(0), m_IsDynamicallySized(false), m_nUnk001(0), m_Data {} {
 	m_Chunk.m_nClusterElement = cluster_elem;
 
 	if (nAllocSize > 255) {
@@ -1546,6 +1547,8 @@ CKeyValues3Cluster::~CKeyValues3Cluster() {
 	FreeMetaData();
 }
 
+#include "tier0/memdbgoff.h"
+
 KeyValues3* CKeyValues3Cluster::Alloc(KV3TypeEx_t type, KV3SubType_t subtype) {
 	Assert(IsFree());
 	/*int element = KV3Helpers::BitScanFwd(~m_nAllocatedElements);
@@ -1554,6 +1557,8 @@ KeyValues3* CKeyValues3Cluster::Alloc(KV3TypeEx_t type, KV3SubType_t subtype) {
 	new (kv) KeyValues3(m_nElementCount - 1, type, subtype);
 	return kv;
 }
+
+#include "tier0/memdbgon.h"
 
 void CKeyValues3Cluster::Free(int element) {
 	Assert(element >= 0 && element < KV3_CLUSTER_MAX_ELEMENTS);
@@ -1734,6 +1739,8 @@ void CKeyValues3Context::Purge() {
 	}
 }
 
+#include "tier0/memdbgoff.h"
+
 CKeyValues3Array* CKeyValues3Context::AllocArray(int nAllocSize) {
 	CKeyValues3Array* pArray = nullptr;
 
@@ -1813,12 +1820,10 @@ CKeyValues3Array* CKeyValues3Context::AllocArray(int nAllocSize) {
 CKeyValues3Table* CKeyValues3Context::AllocTable(int nAllocSize) {
 	CKeyValues3Table* pTable = nullptr;
 
-	int nSize = 
-		(nAllocSize <= 0) ? 
-		40 : 
-		(17 * nAllocSize + (KV3Helpers::CalcAlighedChunk(nAllocSize) + 31) & KV3_CHUNK_BITMASK) + KV3_TABLE_MAX_FIXED_MEMBERS;
-	if ((m_nTableClusterSize >= m_nTableClusterAllocationCount) ||
-		(m_nTableClusterAllocationCount - m_nTableClusterSize < nSize)) {
+	int nSize = (nAllocSize <= 0)
+					? 40
+					: (17 * nAllocSize + (KV3Helpers::CalcAlighedChunk(nAllocSize) + 31) & KV3_CHUNK_BITMASK) + KV3_TABLE_MAX_FIXED_MEMBERS;
+	if ((m_nTableClusterSize >= m_nTableClusterAllocationCount) || (m_nTableClusterAllocationCount - m_nTableClusterSize < nSize)) {
 		if (nAllocSize > KV3_TABLE_MAX_FIXED_MEMBERS) {
 			return NULL;
 		}
@@ -1889,6 +1894,8 @@ CKeyValues3Table* CKeyValues3Context::AllocTable(int nAllocSize) {
 
 	return pTable;
 }
+
+#include "tier0/memdbgon.h"
 
 KeyValues3* CKeyValues3Context::Root() {
 	if (!m_bRootAvailabe) {
