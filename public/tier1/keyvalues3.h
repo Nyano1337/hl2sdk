@@ -21,8 +21,6 @@
 #include "Color.h"
 #include "entityhandle.h"
 
-#include "tier0/memdbgon.h"
-
 class KeyValues3;
 class CKeyValues3Array;
 class CKeyValues3Table;
@@ -712,7 +710,7 @@ public:
 
 class CKeyValues3Array {
 public:
-	CKeyValues3Array(int cluster_elem = -1);
+	CKeyValues3Array(int nAllocSize = 0, int cluster_elem = -1);
 
 	int GetClusterElement() const {
 		return m_Chunk.m_nClusterElement;
@@ -760,8 +758,7 @@ public:
 	int m_nCount;
 	int8 m_nInitialSize;
 	bool m_IsDynamicallySized;
-	bool m_unk001;
-	bool m_unk002;
+	int16 m_nUnk001;
 
 	union Data_t {
 		struct StaticBuffer_t {
@@ -1048,7 +1045,7 @@ public:
 	CKeyValues3ArrayCluster* m_pArrayClusterCopy;      // 4208
 	CKeyValues3ArrayCluster* m_pEmptyArrayCluster;     // 4216
 	CKeyValues3ArrayCluster* m_pEmptyArrayClusterCopy; // 4224
-	int m_nArrayClusterrSize;                          // 4232
+	int m_nArrayClusterSize;                           // 4232
 	int m_nArrayClusterAllocationCount;                // 4236
 	CKeyValues3Array* m_pDynamicArray;                 // 4240
 

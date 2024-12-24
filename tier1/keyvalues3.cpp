@@ -30,11 +30,24 @@ KeyValues3::~KeyValues3() {
 void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 	switch (GetTypeEx()) {
 		case KV3_TYPEEX_ARRAY: {
-			CKeyValues3Context* context = GetContext();
-			if (context) {
-				m_pArray = context->AllocArray(nAllocSize);
+			if (nValidBytes <= 0) {
+				CKeyValues3Context* context = GetContext();
+				if (context) {
+					m_pArray = context->AllocArray(nAllocSize);
+					if (!m_pArray) {
+						int nSize = 64;
+						if (nAllocSize > 0) {
+							nSize = 8 * nAllocSize + 16;
+						}
+
+						m_pArray = (CKeyValues3Array*)g_pMemAlloc->RegionAlloc(58, nSize);
+						new (m_pArray) CKeyValues3Array(nAllocSize);
+					}
+				} else {
+					m_pArray = new CKeyValues3Array(nAllocSize);
+				}
 			} else {
-				m_pArray = new CKeyValues3Array;
+			
 			}
 			break;
 		}
@@ -50,6 +63,7 @@ void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 						}
 
 						m_pTable = (CKeyValues3Table*)g_pMemAlloc->RegionAlloc(58, nSize);
+						new (m_pTable) CKeyValues3Table(nAllocSize);
 					}
 				} else {
 					m_pTable = new CKeyValues3Table(nAllocSize);
@@ -1034,10 +1048,17 @@ KeyValues3& KeyValues3::operator=(const KeyValues3& src) {
 	return *this;
 }
 
-CKeyValues3Array::CKeyValues3Array(int cluster_elem)
-	: m_nCount(0), m_nInitialSize(KV3_ARRAY_MAX_FIXED_MEMBERS), m_IsDynamicallySized(false), m_unk001(false), m_unk002(false), m_Data {} {
+CKeyValues3Array::CKeyValues3Array(int nAllocSize, int cluster_elem)
+	: m_nCount(0), m_IsDynamicallySized(false), m_nUnk001(0), m_Data {} {
 	m_Chunk.m_nClusterElement = cluster_elem;
-	m_Chunk.m_nAllocatedChunks = KV3_ARRAY_MAX_FIXED_MEMBERS;
+
+	if (nAllocSize > 255) {
+		m_nInitialSize = -1;
+		m_Chunk.m_nAllocatedChunks = nAllocSize;
+	} else {
+		m_nInitialSize = KV3_ARRAY_MAX_FIXED_MEMBERS;
+		m_Chunk.m_nAllocatedChunks = KV3_ARRAY_MAX_FIXED_MEMBERS;
+	}
 }
 
 CKeyValues3ArrayCluster* CKeyValues3Array::GetCluster() const {
@@ -1604,7 +1625,7 @@ KV3MetaData_t* CKeyValues3BaseCluster::GetMetaData(int element) const {
 CKeyValues3ContextBase::CKeyValues3ContextBase(CKeyValues3Context* context)
 	: m_pContext(context), m_KV3BaseCluster(context), m_pKV3FreeClusterAllocator(NULL), m_pKV3FreeClusterAllocatorCopy(NULL), m_pKV3UnkCluster(NULL),
 	  m_pKV3UnkCluster2(NULL), m_pArrayCluster(NULL), m_pArrayClusterCopy(NULL), m_pEmptyArrayCluster(NULL), m_pEmptyArrayClusterCopy(NULL),
-	  m_nArrayClusterrSize(0), m_nArrayClusterAllocationCount(0), m_pDynamicArray(NULL), m_pTableCluster(NULL), m_pTableClusterCopy(NULL),
+	  m_nArrayClusterSize(0), m_nArrayClusterAllocationCount(0), m_pDynamicArray(NULL), m_pTableCluster(NULL), m_pTableClusterCopy(NULL),
 	  m_pEmptyTableCluster(NULL), m_pEmptyTableClusterCopy(NULL), m_nTableClusterSize(0), m_nTableClusterAllocationCount(0), m_pDynamicTable(NULL),
 	  m_bMetaDataEnabled(false), m_bFormatConverted(false), m_bRootAvailabe(true), m_pParsingErrorListener(NULL) {}
 
@@ -1716,70 +1737,81 @@ void CKeyValues3Context::Purge() {
 CKeyValues3Array* CKeyValues3Context::AllocArray(int nAllocSize) {
 	CKeyValues3Array* pArray = nullptr;
 
-	CKeyValues3ArrayCluster*& cluster = m_pArrayCluster;
-	if (cluster) {
-		KeyValues3ClusterNode*& node = cluster->m_pNextFreeNode;
-		pArray = (CKeyValues3Array*)node;
-		if (node) {
-			++cluster->m_nElementCount;
-			node = node->m_pNextFree;
+	int nSize = (nAllocSize <= 0) ? 32 : 8 * nAllocSize + 24;
+	if ((m_nArrayClusterSize >= m_nArrayClusterAllocationCount) || (m_nArrayClusterAllocationCount - m_nArrayClusterSize < nSize)) {
+		if (nAllocSize > KV3_ARRAY_MAX_FIXED_MEMBERS) {
+			return NULL;
 		}
 
-		int nClusterElement = ((uintptr_t)pArray - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
-		new (pArray) CKeyValues3Array(nClusterElement);
+		CKeyValues3ArrayCluster*& cluster = m_pArrayCluster;
+		if (cluster) {
+			pArray = *(CKeyValues3Array**)cluster->m_pNextFreeNode;
+			if (pArray) {
+				++cluster->m_nElementCount;
+				cluster->m_pNextFreeNode = *(KeyValues3ClusterNode**)pArray;
 
-		if (cluster->m_nElementCount == cluster->m_nAllocatedElements) {
-			auto v8 = cluster->m_pPrev;
-			auto v9 = cluster->m_pNext;
-			if (v8) {
-				v8->m_pNext = v9;
-			} else {
-				m_pArrayClusterCopy = (CKeyValues3ArrayCluster*)v9;
+				int nClusterElement = ((uintptr_t)pArray - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
+				new (pArray) CKeyValues3Array(nAllocSize, nClusterElement);
+				*(int64*)&pArray->m_nCount = 0x600000000;
 			}
 
-			auto v10 = cluster->m_pNext;
-			auto v11 = cluster->m_pPrev;
-			if (v10) {
-				v10->m_pPrev = v11;
-			} else {
-				cluster = (CKeyValues3ArrayCluster*)v11;
+			if (cluster->m_nElementCount == (2 * cluster->m_nAllocatedElements) >> 1) {
+				auto pPrev = m_pArrayCluster->m_pPrev;
+				auto pNext = m_pArrayCluster->m_pNext;
+				if (pPrev) {
+					pPrev->m_pNext = pNext;
+				} else {
+					m_pArrayClusterCopy = (CKeyValues3ArrayCluster*)pNext;
+				}
+
+				auto v21 = m_pArrayCluster->m_pNext;
+				auto v22 = m_pArrayCluster->m_pPrev;
+				if (v21) {
+					v21->m_pPrev = v22;
+				} else {
+					m_pArrayCluster = (CKeyValues3ArrayCluster*)v22;
+				}
+
+				m_pArrayCluster->m_pNext = NULL;
+				m_pArrayCluster->m_pPrev = NULL;
+
+				auto& pEmptyCluster = m_pEmptyArrayCluster;
+				if (pEmptyCluster) {
+					pEmptyCluster->m_pNext = (CKeyValues3Cluster*)m_pArrayCluster;
+				} else {
+					m_pEmptyArrayClusterCopy = m_pArrayCluster;
+				}
+
+				m_pArrayCluster->m_pNext = NULL;
+				m_pArrayCluster->m_pPrev = (CKeyValues3Cluster*)m_pEmptyArrayCluster;
+				m_pEmptyArrayCluster = m_pArrayCluster;
 			}
+		} else {
+			CKeyValues3TableCluster* cluster = new CKeyValues3TableCluster(m_pContext);
 
-			cluster->m_pNext = nullptr;
-			cluster->m_pPrev = nullptr;
+			pArray = *(CKeyValues3Array**)cluster->m_pNextFreeNode;
+			if (pArray) {
+				++cluster->m_nElementCount;
+				cluster->m_pNextFreeNode = *(KeyValues3ClusterNode**)pArray;
 
-			if (m_pEmptyArrayCluster) {
-				m_pEmptyArrayCluster->m_pNext = (CKeyValues3Cluster*)cluster;
-			} else {
-				m_pEmptyArrayClusterCopy = cluster;
+				int nClusterElement = ((uintptr_t)pArray - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
+				new (pArray) CKeyValues3Array(nAllocSize, nClusterElement);
+				*(int64*)&pArray->m_nCount = 0x600000000;
 			}
-
-			cluster->m_pNext = nullptr;
-			cluster->m_pPrev = (CKeyValues3Cluster*)m_pEmptyTableCluster;
-			m_pEmptyArrayCluster = cluster;
 		}
+
+		return pArray;
 	} else {
-		CKeyValues3ArrayCluster* cluster = new CKeyValues3ArrayCluster(m_pContext);
-
-		m_pArrayCluster = cluster;
-		m_pArrayClusterCopy = cluster;
-
-		KeyValues3ClusterNode*& node = m_pArrayCluster->m_pNextFreeNode;
-		pArray = (CKeyValues3Array*)node;
-		if (node) {
-			++m_pTableCluster->m_nElementCount;
-			node = (KeyValues3ClusterNode*)node->m_pNextFree;
+		if (!m_nArrayClusterAllocationCount) {
+			DebuggerBreak();
 		}
-
-		int nClusterElement = ((uintptr_t)pArray - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
-		new (pArray) CKeyValues3Array(nClusterElement);
 	}
 
 	return pArray;
 }
 
 CKeyValues3Table* CKeyValues3Context::AllocTable(int nAllocSize) {
-	CKeyValues3Table* table = nullptr;
+	CKeyValues3Table* pTable = nullptr;
 
 	int nSize = 
 		(nAllocSize <= 0) ? 
@@ -1793,14 +1825,14 @@ CKeyValues3Table* CKeyValues3Context::AllocTable(int nAllocSize) {
 
 		CKeyValues3TableCluster*& cluster = m_pTableCluster;
 		if (cluster) {
-			table = *(CKeyValues3Table**)cluster->m_pNextFreeNode;
-			if (table) {
+			pTable = *(CKeyValues3Table**)cluster->m_pNextFreeNode;
+			if (pTable) {
 				++cluster->m_nElementCount;
-				cluster->m_pNextFreeNode = *(KeyValues3ClusterNode**)table;
+				cluster->m_pNextFreeNode = *(KeyValues3ClusterNode**)pTable;
 
-				int nClusterElement = ((uintptr_t)table - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
-				new (table) CKeyValues3Table(nAllocSize, nClusterElement);
-				*(int64*)&table->m_nCount = 0x800000000;
+				int nClusterElement = ((uintptr_t)pTable - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
+				new (pTable) CKeyValues3Table(nAllocSize, nClusterElement);
+				*(int64*)&pTable->m_nCount = 0x800000000;
 			}
 
 			if (cluster->m_nElementCount == (2 * cluster->m_nAllocatedElements) >> 1) {
@@ -1837,26 +1869,25 @@ CKeyValues3Table* CKeyValues3Context::AllocTable(int nAllocSize) {
 		} else {
 			CKeyValues3TableCluster* cluster = new CKeyValues3TableCluster(m_pContext);
 
-			table = *(CKeyValues3Table**)cluster->m_pNextFreeNode;
-			if (table) {
+			pTable = *(CKeyValues3Table**)cluster->m_pNextFreeNode;
+			if (pTable) {
 				++cluster->m_nElementCount;
-				cluster->m_pNextFreeNode = *(KeyValues3ClusterNode**)table;
+				cluster->m_pNextFreeNode = *(KeyValues3ClusterNode**)pTable;
 
-				int nClusterElement = ((uintptr_t)table - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
-				new (table) CKeyValues3Table(nAllocSize, nClusterElement);
-				*(int64*)&table->m_nCount = 0x800000000;
+				int nClusterElement = ((uintptr_t)pTable - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
+				new (pTable) CKeyValues3Table(nAllocSize, nClusterElement);
+				*(int64*)&pTable->m_nCount = 0x800000000;
 			}
 		}
 
-		return table;
+		return pTable;
 	} else {
 		if (!m_nTableClusterAllocationCount) {
-			auto v15 = m_nTableClusterSize + nSize;
 			DebuggerBreak();
 		}
 	}
 
-	return table;
+	return pTable;
 }
 
 KeyValues3* CKeyValues3Context::Root() {
