@@ -1463,4 +1463,6 @@ void CKeyValues3Context::Free(ELEMENT_TYPE* element, CLUSTER_TYPE* base, CLUSTER
 	}
 }
 
+#include "tier0/memdbgoff.h"
+
 #endif // KEYVALUES3_H

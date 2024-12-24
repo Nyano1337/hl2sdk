@@ -1941,45 +1941,45 @@ void CKeyValues3Context::CopyMetaData(KV3MetaData_t* pDest, const KV3MetaData_t*
 KeyValues3* CKeyValues3Context::AllocKV(KV3TypeEx_t type, KV3SubType_t subtype) {
 	KeyValues3* kv;
 
-	CKeyValues3Cluster*& allocator = m_pKV3FreeClusterAllocator;
-	if (allocator) {
-		KeyValues3ClusterNode*& node = allocator->m_pNextFreeNode;
+	CKeyValues3Cluster*& cluster = m_pKV3FreeClusterAllocator;
+	if (cluster) {
+		KeyValues3ClusterNode*& node = *(KeyValues3ClusterNode**)cluster->m_pNextFreeNode;
 		if (node) {
-			++allocator->m_nElementCount;
-			node = node->m_pNextFree;
+			++cluster->m_nElementCount;
+			cluster->m_pNextFreeNode = *(KeyValues3ClusterNode**)node;
 		}
 
-		kv = allocator->Alloc(type, subtype);
+		kv = cluster->Alloc(type, subtype);
 
-		if (allocator->m_nElementCount == allocator->m_nAllocatedElements) {
-			auto v16 = allocator->m_pPrev;
-			auto v17 = allocator->m_pNext;
+		if (cluster->m_nElementCount == cluster->m_nAllocatedElements) {
+			auto v16 = cluster->m_pPrev;
+			auto v17 = cluster->m_pNext;
 			if (v16) {
 				v16->m_pNext = v17;
 			} else {
 				m_pKV3FreeClusterAllocatorCopy = v17;
 			}
 
-			auto v18 = allocator->m_pNext;
-			auto v19 = allocator->m_pPrev;
+			auto v18 = cluster->m_pNext;
+			auto v19 = cluster->m_pPrev;
 			if (v18) {
 				v18->m_pPrev = v19;
 			} else {
-				allocator = v19;
+				cluster = v19;
 			}
 
-			allocator->m_pNext = nullptr;
-			allocator->m_pPrev = nullptr;
+			cluster->m_pNext = nullptr;
+			cluster->m_pPrev = nullptr;
 
 			if (m_pKV3UnkCluster) {
-				m_pKV3UnkCluster->m_pNext = allocator;
+				m_pKV3UnkCluster->m_pNext = cluster;
 			} else {
-				m_pKV3UnkCluster2 = allocator;
+				m_pKV3UnkCluster2 = cluster;
 			}
 
-			allocator->m_pNext = nullptr;
-			allocator->m_pPrev = m_pKV3UnkCluster;
-			m_pKV3UnkCluster = allocator;
+			cluster->m_pNext = nullptr;
+			cluster->m_pPrev = m_pKV3UnkCluster;
+			m_pKV3UnkCluster = cluster;
 		}
 	} else {
 		CKeyValues3Cluster* cluster = new CKeyValues3Cluster(m_pContext);
@@ -1988,10 +1988,10 @@ KeyValues3* CKeyValues3Context::AllocKV(KV3TypeEx_t type, KV3SubType_t subtype) 
 		m_pKV3FreeClusterAllocator = cluster;
 		m_pKV3FreeClusterAllocatorCopy = cluster;
 
-		KeyValues3ClusterNode*& node = m_pKV3FreeClusterAllocator->m_pNextFreeNode;
+		KeyValues3ClusterNode*& node = *(KeyValues3ClusterNode**)cluster->m_pNextFreeNode;
 		if (node) {
 			++m_pKV3FreeClusterAllocator->m_nElementCount;
-			node = node->m_pNextFree;
+			m_pKV3FreeClusterAllocator->m_pNextFreeNode = *(KeyValues3ClusterNode**)node;
 		}
 
 		kv = m_pKV3FreeClusterAllocator->Alloc(type, subtype);
