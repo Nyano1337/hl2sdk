@@ -21,6 +21,8 @@
 #include "Color.h"
 #include "entityhandle.h"
 
+#include "tier0/memdbgon.h"
+
 class KeyValues3;
 class CKeyValues3Array;
 class CKeyValues3Table;
