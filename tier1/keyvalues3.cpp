@@ -679,7 +679,7 @@ KeyValues3* KeyValues3::FindOrCreateMember(const CKV3MemberName& name, bool* pCr
 			*pCreated = true;
 		}
 
-		id = m_pTable->CreateMember(name, this);
+		id = m_pTable->CreateMember(name);
 	}
 	else {
 		if (pCreated) {
@@ -1086,7 +1086,7 @@ CKeyValues3Array::CKeyValues3Array(int nAllocSize, int cluster_elem) : m_nCount(
 }
 
 void CKeyValues3Array::Init(int nAllocSize, int cluster_elem) {
-	(int64&)m_nCount = 0x600000000;
+	m_nCount = 0;
 	m_IsDynamicallySized = false;
 	m_nUnk001 = 0;
 	m_Data = {};
@@ -1230,7 +1230,7 @@ CKeyValues3Table::CKeyValues3Table(int nAllocSize, int cluster_elem)
 
 void CKeyValues3Table::Init(int nAllocSize, int cluster_elem) {
 	m_pFastSearch = NULL;
-	(int64&)m_nCount = 0x800000000;
+	m_nCount = 0;
 	m_bIsDynamicallySized = false;
 	m_nUnk1 = 0;
 	m_Data = {};
@@ -1439,7 +1439,7 @@ KV3MemberId_t CKeyValues3Table::FindMember(const CKV3MemberName& name) {
 	return KV3_INVALID_MEMBER;
 }
 
-KV3MemberId_t CKeyValues3Table::CreateMember(const CKV3MemberName& name, KeyValues3* pKV3) {
+KV3MemberId_t CKeyValues3Table::CreateMember(const CKV3MemberName& name) {
 	KV3MemberId_t memberId = m_nCount;
 
 	if (GetMemberCount() >= 128 && !m_pFastSearch) {

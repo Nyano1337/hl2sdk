@@ -843,7 +843,7 @@ public:
 	void EnsureMemberCapacity(int num, bool force = false, bool dont_move = false);
 	KV3MemberId_t FindMember(const KeyValues3* kv) const;
 	KV3MemberId_t FindMember(const CKV3MemberName& name);
-	KV3MemberId_t CreateMember(const CKV3MemberName& name, KeyValues3* pKV3);
+	KV3MemberId_t CreateMember(const CKV3MemberName& name);
 
 	void CopyFrom(const CKeyValues3Table* pSrc);
 	void RemoveMember(KV3MemberId_t id);
@@ -961,7 +961,7 @@ public:
 public:
 	CKeyValues3Context* m_pContext;
 	KeyValues3ClusterNode* m_pNextFreeNode;
-	int m_nAllocatedElements;
+	uint m_nAllocatedElements;
 	int m_nElementCount;
 	CKeyValues3Cluster* m_pPrev;
 	CKeyValues3Cluster* m_pNext;
