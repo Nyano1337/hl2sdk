@@ -1828,61 +1828,57 @@ CKeyValues3Array* CKeyValues3Context::AllocArray(int nAllocSize) {
 			return NULL;
 		}
 
-		CKeyValues3ArrayCluster*& cluster = m_pArrayCluster;
-		if (cluster) {
-			pArray = (CKeyValues3Array*)cluster->m_pNextFreeNode;
+		if (m_pArrayCluster) {
+			pArray = (CKeyValues3Array*)m_pArrayCluster->m_pNextFreeNode;
 			if (pArray) {
-				++cluster->m_nElementCount;
-				cluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pArray->m_pNextFree;
+				++m_pArrayCluster->m_nElementCount;
+				m_pArrayCluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pArray->m_pNextFree;
 
-				int nClusterElement = ((uintptr_t)pArray - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
+				int nClusterElement = ((uintptr_t)pArray - (uintptr_t)m_pArrayCluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
 				pArray->Init(nAllocSize, nClusterElement);
 			}
 
-			if (cluster->m_nElementCount == (2 * cluster->m_nAllocatedElements) >> 1) {
-				auto pPrev = m_pArrayCluster->m_pPrev;
-				auto pNext = m_pArrayCluster->m_pNext;
-				if (pPrev) {
-					pPrev->m_pNext = pNext;
-				}
-				else {
-					m_pArrayClusterCopy = (CKeyValues3ArrayCluster*)pNext;
-				}
+			if (m_pArrayCluster->m_nElementCount == (2 * m_pArrayCluster->m_nAllocatedElements) >> 1) {
+				auto pAllocator = m_pArrayCluster;
+				auto v19 = pAllocator->m_pPrev;
+				auto v20 = pAllocator->m_pNext;
+				if (v19)
+					v19->m_pNext = v20;
+				else
+					m_pArrayClusterCopy = (CKeyValues3ArrayCluster*)v20;
 
-				auto v21 = m_pArrayCluster->m_pNext;
-				auto v22 = m_pArrayCluster->m_pPrev;
-				if (v21) {
+				auto v21 = pAllocator->m_pNext;
+				auto v22 = pAllocator->m_pPrev;
+				if (v21)
 					v21->m_pPrev = v22;
-				}
-				else {
+				else
 					m_pArrayCluster = (CKeyValues3ArrayCluster*)v22;
-				}
 
-				m_pArrayCluster->m_pNext = NULL;
-				m_pArrayCluster->m_pPrev = NULL;
+				pAllocator->m_pNext = NULL;
+				pAllocator->m_pPrev = NULL;
 
-				auto& pEmptyCluster = m_pEmptyArrayCluster;
-				if (pEmptyCluster) {
-					pEmptyCluster->m_pNext = (CKeyValues3Cluster*)m_pArrayCluster;
-				}
-				else {
-					m_pEmptyArrayClusterCopy = m_pArrayCluster;
-				}
+				auto pEmptyAllocator = m_pEmptyArrayCluster;
+				if (pEmptyAllocator)
+					pEmptyAllocator->m_pNext = (CKeyValues3Cluster*)pAllocator;
+				else
+					m_pEmptyArrayClusterCopy = pAllocator;
 
-				m_pArrayCluster->m_pNext = NULL;
-				m_pArrayCluster->m_pPrev = (CKeyValues3Cluster*)m_pEmptyArrayCluster;
-				m_pEmptyArrayCluster = m_pArrayCluster;
+				pAllocator->m_pNext = NULL;
+				pAllocator->m_pPrev = (CKeyValues3Cluster*)m_pEmptyArrayCluster;
+
+				m_pEmptyArrayCluster = pAllocator;
 			}
 		}
 		else {
-			CKeyValues3TableCluster* cluster = new CKeyValues3TableCluster(m_pContext);
+			m_pArrayCluster = new CKeyValues3ArrayCluster(m_pContext);
+			m_pArrayClusterCopy = m_pArrayCluster;
 
-			pArray = (CKeyValues3Array*)cluster->m_pNextFreeNode;
+			pArray = (CKeyValues3Array*)m_pArrayCluster->m_pNextFreeNode;
 			if (pArray) {
-				++cluster->m_nElementCount;
-				cluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pArray->m_pNextFree;
+				++m_pArrayCluster->m_nElementCount;
+				m_pArrayCluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pArray->m_pNextFree;
 
-				int nClusterElement = ((uintptr_t)pArray - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
+				int nClusterElement = ((uintptr_t)pArray - (uintptr_t)m_pArrayCluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Array);
 				pArray->Init(nAllocSize, nClusterElement);
 			}
 		}
@@ -1909,61 +1905,57 @@ CKeyValues3Table* CKeyValues3Context::AllocTable(int nAllocSize) {
 			return NULL;
 		}
 
-		CKeyValues3TableCluster*& cluster = m_pTableCluster;
-		if (cluster) {
-			pTable = (CKeyValues3Table*)cluster->m_pNextFreeNode;
+		if (m_pTableCluster) {
+			pTable = (CKeyValues3Table*)m_pTableCluster->m_pNextFreeNode;
 			if (pTable) {
-				++cluster->m_nElementCount;
-				cluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pTable->m_pNextFree;
+				++m_pTableCluster->m_nElementCount;
+				m_pTableCluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pTable->m_pNextFree;
 
-				int nClusterElement = ((uintptr_t)pTable - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
+				int nClusterElement = ((uintptr_t)pTable - (uintptr_t)m_pTableCluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
 				pTable->Init(nAllocSize, nClusterElement);
 			}
 
-			if (cluster->m_nElementCount == (2 * cluster->m_nAllocatedElements) >> 1) {
-				auto pPrev = m_pTableCluster->m_pPrev;
-				auto pNext = m_pTableCluster->m_pNext;
-				if (pPrev) {
-					pPrev->m_pNext = pNext;
-				}
-				else {
-					m_pTableClusterCopy = (CKeyValues3TableCluster*)pNext;
-				}
+			if (m_pTableCluster->m_nElementCount == (2 * m_pTableCluster->m_nAllocatedElements) >> 1) {
+				auto pAllocator = m_pTableCluster;
+				auto v19 = pAllocator->m_pPrev;
+				auto v20 = pAllocator->m_pNext;
+				if (v19)
+					v19->m_pNext = v20;
+				else
+					m_pTableClusterCopy = (CKeyValues3TableCluster*)v20;
 
-				auto v21 = m_pTableCluster->m_pNext;
-				auto v22 = m_pTableCluster->m_pPrev;
-				if (v21) {
+				auto v21 = pAllocator->m_pNext;
+				auto v22 = pAllocator->m_pPrev;
+				if (v21)
 					v21->m_pPrev = v22;
-				}
-				else {
+				else
 					m_pTableCluster = (CKeyValues3TableCluster*)v22;
-				}
 
-				m_pTableCluster->m_pNext = NULL;
-				m_pTableCluster->m_pPrev = NULL;
+				pAllocator->m_pNext = NULL;
+				pAllocator->m_pPrev = NULL;
 
-				auto& pEmptyTableCluster = m_pEmptyTableCluster;
-				if (pEmptyTableCluster) {
-					pEmptyTableCluster->m_pNext = (CKeyValues3Cluster*)m_pTableCluster;
-				}
-				else {
-					m_pEmptyTableClusterCopy = m_pTableCluster;
-				}
+				auto pEmptyAllocator = m_pEmptyTableCluster;
+				if (pEmptyAllocator)
+					pEmptyAllocator->m_pNext = (CKeyValues3Cluster*)pAllocator;
+				else
+					m_pEmptyTableClusterCopy = pAllocator;
 
-				m_pTableCluster->m_pNext = NULL;
-				m_pTableCluster->m_pPrev = (CKeyValues3Cluster*)m_pEmptyTableCluster;
-				m_pEmptyTableCluster = m_pTableCluster;
+				pAllocator->m_pNext = NULL;
+				pAllocator->m_pPrev = (CKeyValues3Cluster*)m_pEmptyTableCluster;
+
+				m_pEmptyTableCluster = pAllocator;
 			}
 		}
 		else {
-			CKeyValues3TableCluster* cluster = new CKeyValues3TableCluster(m_pContext);
+			m_pTableCluster = new CKeyValues3TableCluster(m_pContext);
+			m_pTableClusterCopy = m_pTableCluster;
 
-			pTable = (CKeyValues3Table*)cluster->m_pNextFreeNode;
+			pTable = (CKeyValues3Table*)m_pTableCluster->m_pNextFreeNode;
 			if (pTable) {
-				++cluster->m_nElementCount;
-				cluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pTable->m_pNextFree;
+				++m_pTableCluster->m_nElementCount;
+				m_pTableCluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pTable->m_pNextFree;
 
-				int nClusterElement = ((uintptr_t)pTable - (uintptr_t)cluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
+				int nClusterElement = ((uintptr_t)pTable - (uintptr_t)m_pTableCluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
 				pTable->Init(nAllocSize, nClusterElement);
 			}
 		}
@@ -2023,53 +2015,53 @@ void CKeyValues3Context::CopyMetaData(KV3MetaData_t* pDest, const KV3MetaData_t*
 KeyValues3* CKeyValues3Context::AllocKV(KV3TypeEx_t type, KV3SubType_t subtype) {
 	KeyValues3* kv;
 
-	CKeyValues3Cluster*& cluster = m_pKV3FreeClusterAllocator;
-	if (cluster) {
-		KeyValues3ClusterNode* node = cluster->m_pNextFreeNode;
+	if (m_pKV3FreeClusterAllocator) {
+		KeyValues3ClusterNode* node = m_pKV3FreeClusterAllocator->m_pNextFreeNode;
 		if (node) {
-			++cluster->m_nElementCount;
-			cluster->m_pNextFreeNode = node->m_pNextFree;
+			++m_pKV3FreeClusterAllocator->m_nElementCount;
+			m_pKV3FreeClusterAllocator->m_pNextFreeNode = node->m_pNextFree;
 		}
 
-		kv = cluster->Alloc(type, subtype);
+		kv = m_pKV3FreeClusterAllocator->Alloc(type, subtype);
 
-		if (cluster->m_nElementCount == (2 * cluster->m_nAllocatedElements) >> 1) {
-			auto m_pPrev = m_pKV3FreeClusterAllocator->m_pPrev;
-			auto m_pNext = m_pKV3FreeClusterAllocator->m_pNext;
+		if (m_pKV3FreeClusterAllocator->m_nElementCount == (2 * m_pKV3FreeClusterAllocator->m_nAllocatedElements) >> 1) {
+			auto pAllocator = m_pKV3FreeClusterAllocator;
+			auto m_pPrev = pAllocator->m_pPrev;
+			auto m_pNext = pAllocator->m_pNext;
 			if (m_pPrev)
 				m_pPrev->m_pNext = m_pNext;
 			else
 				m_pKV3FreeClusterAllocatorCopy = m_pNext;
 
-			auto v10 = m_pKV3FreeClusterAllocator->m_pNext;
-			auto v11 = m_pKV3FreeClusterAllocator->m_pPrev;
+			auto v10 = pAllocator->m_pNext;
+			auto v11 = pAllocator->m_pPrev;
 			if (v10)
 				v10->m_pPrev = v11;
 			else
 				m_pKV3FreeClusterAllocator = v11;
 
-			m_pKV3FreeClusterAllocator->m_pNext = NULL;
-			m_pKV3FreeClusterAllocator->m_pPrev = NULL;
+			pAllocator->m_pNext = NULL;
+			pAllocator->m_pPrev = NULL;
 
-			if (m_pKV3UnkCluster)
-				m_pKV3UnkCluster->m_pNext = m_pKV3FreeClusterAllocator;
+			auto pUnkCluster = m_pKV3UnkCluster;
+			if (pUnkCluster)
+				pUnkCluster->m_pNext = pAllocator;
 			else
-				m_pKV3UnkCluster2 = m_pKV3FreeClusterAllocator;
+				m_pKV3UnkCluster2 = pAllocator;
 
-			m_pKV3FreeClusterAllocator->m_pNext = NULL;
-			m_pKV3FreeClusterAllocator->m_pPrev = m_pKV3UnkCluster;
+			pAllocator->m_pNext = NULL;
+			pAllocator->m_pPrev = m_pKV3UnkCluster;
 
-			m_pKV3UnkCluster = m_pKV3FreeClusterAllocator;
+			m_pKV3UnkCluster = pAllocator;
 		}
 	}
 	else {
-		CKeyValues3Cluster* cluster = new CKeyValues3Cluster(m_pContext);
-		cluster->EnableMetaData(m_bMetaDataEnabled);
+		m_pKV3FreeClusterAllocator = new CKeyValues3Cluster(m_pContext);
+		m_pKV3FreeClusterAllocator->EnableMetaData(m_bMetaDataEnabled);
 
-		m_pKV3FreeClusterAllocator = cluster;
-		m_pKV3FreeClusterAllocatorCopy = cluster;
+		m_pKV3FreeClusterAllocatorCopy = m_pKV3FreeClusterAllocator;
 
-		KeyValues3ClusterNode* node = cluster->m_pNextFreeNode;
+		KeyValues3ClusterNode* node = m_pKV3FreeClusterAllocator->m_pNextFreeNode;
 		if (node) {
 			++m_pKV3FreeClusterAllocator->m_nElementCount;
 			m_pKV3FreeClusterAllocator->m_pNextFreeNode = node->m_pNextFree;
