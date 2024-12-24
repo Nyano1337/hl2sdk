@@ -1049,7 +1049,7 @@ public:
 	CKeyValues3ArrayCluster* m_pEmptyArrayCluster;     // 4216
 	CKeyValues3ArrayCluster* m_pEmptyArrayClusterCopy; // 4224
 	int m_nArrayClusterrSize;                          // 4232
-	int m_pArrayClusterAllocationCount;                // 4236
+	int m_nArrayClusterAllocationCount;                // 4236
 	CKeyValues3Array* m_pDynamicArray;                 // 4240
 
 	CKeyValues3TableCluster* m_pTableCluster;          // 4248
@@ -1057,7 +1057,7 @@ public:
 	CKeyValues3TableCluster* m_pEmptyTableCluster;     // 4264
 	CKeyValues3TableCluster* m_pEmptyTableClusterCopy; // 4272
 	int m_nTableClusterSize;                           // 4280
-	int m_pTableClusterAllocationCount;                // 4284
+	int m_nTableClusterAllocationCount;                // 4284
 	CKeyValues3Table* m_pDynamicTable;                 // 4288
 
 	CUtlSymbolTableLarge m_Symbols; // 4296
