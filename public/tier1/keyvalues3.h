@@ -718,6 +718,8 @@ public:
 		return m_Chunk.m_nClusterElement;
 	}
 
+	void Init(int nAllocSize, int cluster_elem);
+
 	CKeyValues3ArrayCluster* GetCluster() const;
 	CKeyValues3Context* GetContext() const;
 
@@ -784,6 +786,7 @@ public:
 	typedef bool IsExternalName_t;
 
 	CKeyValues3Table(int nAllocSize = 0, int cluster_elem = -1);
+	void Init(int nAllocSize = 0, int cluster_elem = -1);
 
 	// Gets the base address (can change when adding elements!)
 	void* Base();
