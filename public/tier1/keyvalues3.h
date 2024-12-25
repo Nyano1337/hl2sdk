@@ -1082,7 +1082,7 @@ public:
 	CKeyValues3Context(bool bNoRoot = false);
 	~CKeyValues3Context();
 
-	KeyValues3* AllocKV(KV3TypeEx_t type = KV3_TYPEEX_TABLE, KV3SubType_t subtype = KV3_SUBTYPE_UNSPECIFIED);
+	KeyValues3* AllocKV(KV3TypeEx_t type = KV3_TYPEEX_NULL, KV3SubType_t subtype = KV3_SUBTYPE_UNSPECIFIED);
 	// WARNING: kv must belong to this context!!!
 	void FreeKV(KeyValues3* kv);
 
