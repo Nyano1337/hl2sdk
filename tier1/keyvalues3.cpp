@@ -40,6 +40,8 @@ void KeyValues3::Alloc(int nAllocSize, void* a3, int nValidBytes, uint8 a5) {
 				m_pArray = (CKeyValues3Array*)g_pMemAlloc->RegionAlloc(58, nSize);
 				new (m_pArray) CKeyValues3Array(nAllocSize);
 			}
+
+			m_bFreeArrayMemory = true;
 		}
 		else {
 			DebuggerBreak(); // not impl yet
@@ -70,6 +72,8 @@ void KeyValues3::Alloc(int nAllocSize, void* a3, int nValidBytes, uint8 a5) {
 				m_pTable = (CKeyValues3Table*)g_pMemAlloc->RegionAlloc(58, nSize);
 				new (m_pTable) CKeyValues3Table(nAllocSize);
 			}
+
+			m_bFreeArrayMemory = true;
 		}
 		else {
 			DebuggerBreak(); // not impl yet
