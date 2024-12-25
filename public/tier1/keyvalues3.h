@@ -955,8 +955,8 @@ public:
 	void FreeMetaData();
 	KV3MetaData_t* GetMetaData(int element) const;
 
-	/*friend CKeyValues3ArrayCluster* CKeyValues3Array::GetCluster() const;
-	friend CKeyValues3TableCluster* CKeyValues3Table::GetCluster() const;*/
+	friend CKeyValues3ArrayCluster* CKeyValues3Array::GetCluster() const;
+	friend CKeyValues3TableCluster* CKeyValues3Table::GetCluster() const;
 
 public:
 	CKeyValues3Context* m_pContext;

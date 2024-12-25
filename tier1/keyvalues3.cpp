@@ -766,7 +766,7 @@ const char* KeyValues3::GetTypeAsString() const {
 
 const char* KeyValues3::GetSubTypeAsString() const {
 	static const char* s_SubTypes[] = {
-		"invalid",  "resource",        "resource_name", "panorama", "soundevent", "subclass",  "entity_name",  "unspecified", "null",   "binary_blob",
+		"invalid",  "resource",        "resource_name", "panorama", "soundevent", "<unknown>", "subclass",  "entity_name",  "unspecified", "null",   "binary_blob",
 		"array",    "table",           "bool8",         "char8",    "uchar32",    "int8",      "uint8",        "int16",       "uint16", "int32",
 		"uint32",   "int64",           "uint64",        "float",    "double",     "string",    "pointer",      "color32",     "vector", "vector2d",
 		"vector4d", "rotation_vector", "quaternion",    "qangle",   "matrix3x4",  "transform", "string_token", "ehandle",     NULL };
