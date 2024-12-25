@@ -1358,8 +1358,7 @@ void CKeyValues3Table::EnsureMemberCapacity(int num, bool force, bool dont_move)
 
 	const int nMinAllocated = KV3_MIN_CHUNKS;
 	const int nMaxAllocated = KV3_MAX_CHUNKS;
-	const int nAllocatedChunksSize = nChunks * sizeof(void*);
-	const int nAllocatedChunksDoubleSize = nAllocatedChunksSize * 2;
+
 	int nNewAllocatedChunks = nChunks;
 	if (num > nMaxAllocated) {
 		Plat_FatalErrorFunc("%s member count overflow (%u)\n", __FUNCTION__, num);
@@ -1382,6 +1381,9 @@ void CKeyValues3Table::EnsureMemberCapacity(int num, bool force, bool dont_move)
 			}
 		}
 	}
+
+	const int nAllocatedChunksSize = nNewAllocatedChunks * sizeof(Name_t);
+	const int nAllocatedChunksDoubleSize = nAllocatedChunksSize * 2;
 	const int nAlignedChunk = KV3Helpers::CalcAlighedChunk(nNewAllocatedChunks);
 	const int nNewSize =
 		nAlignedChunk + nNewAllocatedChunks * (nMinAllocated * (sizeof(Hash_t) + sizeof(Member_t) + sizeof(Name_t) + sizeof(IsExternalName_t)));
@@ -1391,6 +1393,7 @@ void CKeyValues3Table::EnsureMemberCapacity(int num, bool force, bool dont_move)
 	if (m_nCount) {
 		bDontMove = dont_move;
 	}
+
 	if (!bDontMove) {
 		if (m_bIsDynamicallySized) {
 			memmove((void*)(nNewAddress + nAlignedChunk + nAllocatedChunksDoubleSize), IsExternalNameBase(), m_nCount * sizeof(IsExternalName_t));
@@ -1404,6 +1407,7 @@ void CKeyValues3Table::EnsureMemberCapacity(int num, bool force, bool dont_move)
 			memmove((void*)(nNewAddress + nAlignedChunk + nAllocatedChunksDoubleSize), IsExternalNameBase(), m_nCount * sizeof(IsExternalName_t));
 		}
 	}
+
 	m_Data.m_pChunks = (Data_t::DynamicBuffer_t*)pNew;
 	m_Chunk.m_nAllocatedChunks = nNewAllocatedChunks;
 	m_bIsDynamicallySized = true;
@@ -1652,8 +1656,7 @@ KeyValues3* CKeyValues3Cluster::Alloc(KV3TypeEx_t type, KV3SubType_t subtype) {
 		m_pNextFreeNode = node->m_pNextFree;
 	}
 
-
-	new (kv) KeyValues3(testKv.m_nClusterElement, type, subtype);
+	new (kv) KeyValues3(m_nElementCount - 1, type, subtype);
 	return kv;
 }
 
@@ -2037,7 +2040,7 @@ void CKeyValues3Context::CopyMetaData(KV3MetaData_t* pDest, const KV3MetaData_t*
 KeyValues3* CKeyValues3Context::AllocKV(KV3TypeEx_t type, KV3SubType_t subtype) {
 	KeyValues3* kv;
 
-	auto pAllocator = m_pKV3FreeClusterAllocator;
+	CKeyValues3Cluster* pAllocator = m_pKV3FreeClusterAllocator;
 	if (pAllocator) {
 		kv = m_pKV3FreeClusterAllocator->Alloc(type, subtype);
 
