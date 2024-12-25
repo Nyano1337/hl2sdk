@@ -632,7 +632,7 @@ private:
 	KeyValues3(int cluster_elem, KV3TypeEx_t type, KV3SubType_t subtype);
 	KeyValues3(const KeyValues3& other);
 
-	void Alloc(int nAllocSize = 0, uint64 a3 = 0, int nValidBytes = 0, uint8 a5 = 0);
+	void Alloc(int nAllocSize = 0, void* a3 = NULL, int nValidBytes = 0, uint8 a5 = 0);
 	void ResolveUnspecified();
 	void PrepareForType(KV3TypeEx_t type, KV3SubType_t subtype, int size = 0, uint64 a5 = 0, int validBytes = 0, uint8 a7 = 0);
 	void OnClearContext();

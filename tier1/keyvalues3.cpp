@@ -26,51 +26,65 @@ KeyValues3::~KeyValues3() {
 
 #include "tier0/memdbgoff.h"
 
-void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
+void KeyValues3::Alloc(int nAllocSize, void* a3, int nValidBytes, uint8 a5) {
 	switch (GetTypeEx()) {
 	case KV3_TYPEEX_ARRAY: {
 		if (nValidBytes <= 0) {
-			CKeyValues3Context* context = GetContext();
-			if (context) {
-				m_pArray = context->AllocArray(nAllocSize);
-				if (!m_pArray) {
-					int nSize = 64;
-					if (nAllocSize > 0) {
-						nSize = 8 * nAllocSize + 16;
-					}
-
-					m_pArray = (CKeyValues3Array*)g_pMemAlloc->RegionAlloc(58, nSize);
-					new (m_pArray) CKeyValues3Array(nAllocSize);
+			CKeyValues3Context* context;
+			if (m_bExternalStorage || !(context = GetContext()) || !(m_pArray = context->AllocArray(nAllocSize))) {
+				int nSize = 64;
+				if (nAllocSize > 0) {
+					nSize = 8 * nAllocSize + 16;
 				}
-			}
-			else {
-				m_pArray = new CKeyValues3Array(nAllocSize);
+
+				m_pArray = (CKeyValues3Array*)g_pMemAlloc->RegionAlloc(58, nSize);
+				new (m_pArray) CKeyValues3Array(nAllocSize);
 			}
 		}
 		else {
+			DebuggerBreak(); // not impl yet
+
+			int nSize = 24;
+			if (nAllocSize > 0) {
+				nSize = 8 * nAllocSize + 16;
+			}
+
+			if (nSize > nValidBytes) {
+				Plat_FatalErrorFunc("KeyValues3: pre-allocated array memory is too small for %u elements (%u bytes available, %u bytes needed)\n", nAllocSize, nValidBytes, nSize);
+				DebuggerBreak();
+			}
+
+			m_bFreeArrayMemory = false;
 		}
 		break;
 	}
 	case KV3_TYPEEX_TABLE: {
 		if (nValidBytes <= 0) {
-			CKeyValues3Context* context = GetContext();
-			if (context) {
-				m_pTable = context->AllocTable(nAllocSize);
-				if (!m_pTable) {
-					int nSize = 32;
-					if (nAllocSize > 0) {
-						nSize = 17 * nAllocSize + KV3Helpers::CalcAlighedChunk(nAllocSize) + 24;
-					}
-
-					m_pTable = (CKeyValues3Table*)g_pMemAlloc->RegionAlloc(58, nSize);
-					new (m_pTable) CKeyValues3Table(nAllocSize);
+			CKeyValues3Context* context;
+			if (m_bExternalStorage || !(context = GetContext()) || !(m_pTable = context->AllocTable(nAllocSize))) {
+				int nSize = 32;
+				if (nAllocSize > 0) {
+					nSize = 17 * nAllocSize + KV3Helpers::CalcAlighedChunk(nAllocSize) + 24;
 				}
-			}
-			else {
-				m_pTable = new CKeyValues3Table(nAllocSize);
+
+				m_pTable = (CKeyValues3Table*)g_pMemAlloc->RegionAlloc(58, nSize);
+				new (m_pTable) CKeyValues3Table(nAllocSize);
 			}
 		}
 		else {
+			DebuggerBreak(); // not impl yet
+
+			int nSize = 32;
+			if (nAllocSize > 0) {
+				nSize = 17 * nAllocSize + KV3Helpers::CalcAlighedChunk(nAllocSize) + 24;
+			}
+
+			if (nSize > nValidBytes) {
+				Plat_FatalErrorFunc("KeyValues3: pre-allocated table memory is too small for %u members (%u bytes available, %u bytes needed)\n", nAllocSize, nValidBytes, nSize);
+				DebuggerBreak();
+			}
+
+			m_bFreeArrayMemory = false;
 		}
 		break;
 	}
@@ -86,6 +100,7 @@ void KeyValues3::Alloc(int nAllocSize, uint64 a3, int nValidBytes, uint8 a5) {
 		break;
 	}
 	default:
+		m_bFreeArrayMemory = false;
 		break;
 	}
 }
@@ -1451,6 +1466,8 @@ KV3MemberId_t CKeyValues3Table::CreateMember(const CKV3MemberName& name) {
 		EnsureMemberCapacity(nNewSize);
 	}
 
+	m_nCount = nNewSize;
+
 	Hash_t* pHashes = HashesBase();
 	Member_t* pMembers = MembersBase();
 	Name_t* pNames = NamesBase();
@@ -1473,7 +1490,6 @@ KV3MemberId_t CKeyValues3Table::CreateMember(const CKV3MemberName& name) {
 		m_pFastSearch->m_member_ids.Insert(name.GetHashCode(), memberId);
 	}
 
-	m_nCount = nNewSize;
 	return memberId;
 }
 
@@ -1609,11 +1625,11 @@ void CKeyValues3BaseCluster::Purge() {
 }
 
 CKeyValues3Cluster::CKeyValues3Cluster(CKeyValues3Context* context) : CKeyValues3BaseCluster(context) {
-	m_nAllocatedElements = KV3_CLUSTER_MAX_ELEMENTS | 0x80000000;
+	m_nAllocatedElements = KV3_CLUSTER_MAX_ELEMENTS;
 
 	KeyValues3ClusterNode* node = nullptr;
 	if (2 * m_nAllocatedElements > 0) {
-		for (int i = KV3_CLUSTER_MAX_ELEMENTS - 1, j = 0; j < (2 * m_nAllocatedElements >> 1); i--, j++) {
+		for (int i = KV3_CLUSTER_MAX_ELEMENTS - 1, j = 0; j < m_nAllocatedElements; i--, j++) {
 			m_KeyValues[i].m_pNextFree = node;
 			node = &m_KeyValues[i];
 		}
@@ -1628,11 +1644,16 @@ CKeyValues3Cluster::~CKeyValues3Cluster() {
 #include "tier0/memdbgoff.h"
 
 KeyValues3* CKeyValues3Cluster::Alloc(KV3TypeEx_t type, KV3SubType_t subtype) {
-	Assert(IsFree());
-	/*int element = KV3Helpers::BitScanFwd(~m_nAllocatedElements);
-	m_nAllocatedElements |= (1ull << element);*/
-	KeyValues3* kv = &m_KeyValues[m_nElementCount - 1].m_KeyValue;
-	new (kv) KeyValues3(m_nElementCount - 1, type, subtype);
+	KeyValues3* kv = &m_pNextFreeNode->m_KeyValue;
+
+	KeyValues3ClusterNode* node = m_pNextFreeNode;
+	if (node) {
+		++m_nElementCount;
+		m_pNextFreeNode = node->m_pNextFree;
+	}
+
+
+	new (kv) KeyValues3(testKv.m_nClusterElement, type, subtype);
 	return kv;
 }
 
@@ -1838,7 +1859,7 @@ CKeyValues3Array* CKeyValues3Context::AllocArray(int nAllocSize) {
 				pArray->Init(nAllocSize, nClusterElement);
 			}
 
-			if (m_pArrayCluster->m_nElementCount == (2 * m_pArrayCluster->m_nAllocatedElements) >> 1) {
+			if (m_pArrayCluster->m_nElementCount == m_pArrayCluster->m_nAllocatedElements) {
 				auto pAllocator = m_pArrayCluster;
 				auto v19 = pAllocator->m_pPrev;
 				auto v20 = pAllocator->m_pNext;
@@ -1905,18 +1926,19 @@ CKeyValues3Table* CKeyValues3Context::AllocTable(int nAllocSize) {
 			return NULL;
 		}
 
-		if (m_pTableCluster) {
-			pTable = (CKeyValues3Table*)m_pTableCluster->m_pNextFreeNode;
+		auto pAllocator = m_pTableCluster;
+		if (pAllocator) {
+			pTable = (CKeyValues3Table*)pAllocator->m_pNextFreeNode;
 			if (pTable) {
-				++m_pTableCluster->m_nElementCount;
-				m_pTableCluster->m_pNextFreeNode = (KeyValues3ClusterNode*)pTable->m_pNextFree;
+				++pAllocator->m_nElementCount;
+				pAllocator->m_pNextFreeNode = (KeyValues3ClusterNode*)pTable->m_pNextFree;
 
 				int nClusterElement = ((uintptr_t)pTable - (uintptr_t)m_pTableCluster - sizeof(CKeyValues3BaseCluster)) / sizeof(CKeyValues3Table);
 				pTable->Init(nAllocSize, nClusterElement);
 			}
 
-			if (m_pTableCluster->m_nElementCount == (2 * m_pTableCluster->m_nAllocatedElements) >> 1) {
-				auto pAllocator = m_pTableCluster;
+			int nAllocatedElements = (2 * pAllocator->m_nAllocatedElements) >> 1;
+			if (pAllocator->m_nElementCount == nAllocatedElements) {
 				auto v19 = pAllocator->m_pPrev;
 				auto v20 = pAllocator->m_pNext;
 				if (v19)
@@ -2015,17 +2037,12 @@ void CKeyValues3Context::CopyMetaData(KV3MetaData_t* pDest, const KV3MetaData_t*
 KeyValues3* CKeyValues3Context::AllocKV(KV3TypeEx_t type, KV3SubType_t subtype) {
 	KeyValues3* kv;
 
-	if (m_pKV3FreeClusterAllocator) {
-		KeyValues3ClusterNode* node = m_pKV3FreeClusterAllocator->m_pNextFreeNode;
-		if (node) {
-			++m_pKV3FreeClusterAllocator->m_nElementCount;
-			m_pKV3FreeClusterAllocator->m_pNextFreeNode = node->m_pNextFree;
-		}
-
+	auto pAllocator = m_pKV3FreeClusterAllocator;
+	if (pAllocator) {
 		kv = m_pKV3FreeClusterAllocator->Alloc(type, subtype);
 
-		if (m_pKV3FreeClusterAllocator->m_nElementCount == (2 * m_pKV3FreeClusterAllocator->m_nAllocatedElements) >> 1) {
-			auto pAllocator = m_pKV3FreeClusterAllocator;
+		int nAllocatedElements = (2 * pAllocator->m_nAllocatedElements) >> 1;
+		if (pAllocator->m_nElementCount == nAllocatedElements) {
 			auto m_pPrev = pAllocator->m_pPrev;
 			auto m_pNext = pAllocator->m_pNext;
 			if (m_pPrev)
@@ -2061,12 +2078,6 @@ KeyValues3* CKeyValues3Context::AllocKV(KV3TypeEx_t type, KV3SubType_t subtype) 
 
 		m_pKV3FreeClusterAllocatorCopy = m_pKV3FreeClusterAllocator;
 
-		KeyValues3ClusterNode* node = m_pKV3FreeClusterAllocator->m_pNextFreeNode;
-		if (node) {
-			++m_pKV3FreeClusterAllocator->m_nElementCount;
-			m_pKV3FreeClusterAllocator->m_pNextFreeNode = node->m_pNextFree;
-		}
-
 		kv = m_pKV3FreeClusterAllocator->Alloc(type, subtype);
 	}
 
@@ -2087,11 +2098,11 @@ void CKeyValues3Context::FreeKV(KeyValues3* kv) {
 }
 
 CKeyValues3ArrayCluster::CKeyValues3ArrayCluster(CKeyValues3Context* context) : CKeyValues3BaseCluster(context) {
-	m_nAllocatedElements = KV3_ARRAY_INIT_SIZE | 0x80000000;
+	m_nAllocatedElements = KV3_ARRAY_INIT_SIZE;
 
 	CKeyValues3ArrayNode* node = nullptr;
 	if (2 * m_nAllocatedElements > 0) {
-		for (int i = KV3_ARRAY_INIT_SIZE - 1, j = 0; j < (2 * m_nAllocatedElements >> 1); i--, j++) {
+		for (int i = KV3_ARRAY_INIT_SIZE - 1, j = 0; j < m_nAllocatedElements; i--, j++) {
 			m_Elements[i].m_pNextFree = node;
 			node = &m_Elements[i];
 		}
@@ -2101,11 +2112,11 @@ CKeyValues3ArrayCluster::CKeyValues3ArrayCluster(CKeyValues3Context* context) : 
 }
 
 CKeyValues3TableCluster::CKeyValues3TableCluster(CKeyValues3Context* context) : CKeyValues3BaseCluster(context) {
-	m_nAllocatedElements = KV3_TABLE_INIT_SIZE | 0x80000000;
+	m_nAllocatedElements = KV3_TABLE_INIT_SIZE;
 
 	CKeyValues3TableNode* node = nullptr;
 	if (2 * m_nAllocatedElements > 0) {
-		for (int i = KV3_TABLE_INIT_SIZE - 1, j = 0; j < (2 * m_nAllocatedElements >> 1); i--, j++) {
+		for (int i = KV3_TABLE_INIT_SIZE - 1, j = 0; j < m_nAllocatedElements; i--, j++) {
 			m_Elements[i].m_pNextFree = node;
 			node = &m_Elements[i];
 		}
