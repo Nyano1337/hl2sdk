@@ -737,12 +737,12 @@ private:
 };
 COMPILE_TIME_ASSERT(sizeof(CKeyValues3Table) == 192);
 
-template <size_t SIZE, typename T>
+template <size_t TSIZE, typename T>
 class CKeyValues3ClusterImpl
 {
 public:
 	typedef T NodeType;
-	static const size_t SIZE = SIZE;
+	static const size_t SIZE = TSIZE;
 
 	union Node
 	{
@@ -760,7 +760,7 @@ public:
 		FLAGS_MASK = ~(HEAP_MARKER)
 	};
 
-	CKeyValues3ClusterImpl( CKeyValues3Context *context, bool allocated_on_heap = false, int initial_size = SIZE );
+	CKeyValues3ClusterImpl( CKeyValues3Context *context, bool allocated_on_heap = false, int initial_size = TSIZE );
 
 	CKeyValues3Context *GetContext() const { return m_pContext; }
 
@@ -800,7 +800,7 @@ public:
 
 	static constexpr size_t TotalSizeOf( int initial_size ) { return ALIGN_VALUE( TotalSizeWithoutStaticData() + TotalSizeOfData( MAX( initial_size, 0 ) ), 8 ); }
 	static constexpr size_t TotalSizeOfData( int size ) { return sizeof( Node ) * size; }
-	static constexpr size_t TotalSizeWithoutStaticData() { return sizeof( CKeyValues3ClusterImpl ) - TotalSizeOfData( SIZE ); }
+	static constexpr size_t TotalSizeWithoutStaticData() { return sizeof( CKeyValues3ClusterImpl ) - TotalSizeOfData( TSIZE ); }
 
 	friend CKeyValues3Cluster *KeyValues3::GetCluster() const;
 	friend CKeyValues3ArrayCluster *CKeyValues3Array::GetCluster() const;
@@ -816,7 +816,7 @@ private:
 	struct kv3metadata_t
 	{
 		int m_AllocatedElements;
-		KV3MetaData_t m_elements[SIZE];
+		KV3MetaData_t m_elements[TSIZE];
 	};
 
 	CKeyValues3Context *m_pContext;
@@ -830,7 +830,7 @@ private:
 
 	kv3metadata_t *m_pMetaData;
 
-	Node m_Values[SIZE];
+	Node m_Values[TSIZE];
 };
 
 class CKeyValues3ContextBase
@@ -971,7 +971,7 @@ private:
 	template <typename T>
 	void MoveToPartial( ClusterNodeChain<T> *full_cluster, ClusterNodeChain<T> *partial_cluster );
 
-	template <typename T, typename... Args, typename = typename std::enable_if_t<std::is_constructible_v<T::NodeType, Args...>, int>>
+	template <typename T, typename... Args, typename = typename std::enable_if_t<std::is_constructible_v<typename T::NodeType, Args...>, int>>
 	auto Alloc( ClusterNodeChain<T> *partial_clusters, ClusterNodeChain<T> *full_clusters, int initial_size = T::SIZE, Args&&... args );
 
 	template <typename T>
@@ -1517,7 +1517,7 @@ auto CKeyValues3Context::Alloc( ClusterNodeChain<T> *partial_clusters,
 								int initial_size, Args&&... args )
 {
 	auto tail = partial_clusters->m_pTail;
-	T::NodeType *elem = nullptr;
+	typename T::NodeType *elem = nullptr;
 
 	if(tail)
 	{
