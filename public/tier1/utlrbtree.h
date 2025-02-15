@@ -33,11 +33,38 @@ public:
 
 #define DefLessFunc( type ) CDefOps< type >::LessFunc
 
+template <typename T>
+class CDefLess
+{
+public:
+	CDefLess() {}
+	CDefLess( int i ) {}
+	inline bool operator()( const T &lhs, const T &rhs ) const { return ( lhs < rhs );	}
+	inline bool operator!() const { return false; }
+};
+
 //-------------------------------------
 
-inline bool StringLessThan( const char * const &lhs, const char * const &rhs)			{ return ( strcmp( lhs, rhs) < 0 );  }
-inline bool CaselessStringLessThan( const char * const &lhs, const char * const &rhs )	{ return ( stricmp( lhs, rhs) < 0 ); }
+inline bool StringLessThan( const char * const &lhs, const char * const &rhs)			
+{
+	if ( !lhs ) return false;
+	if ( !rhs ) return true;
+	return ( strcmp( lhs, rhs ) < 0 );  
+}
 
+inline bool CaselessStringLessThan( const char * const &lhs, const char * const &rhs )	
+{ 
+	if ( !lhs ) return false;
+	if ( !rhs ) return true;
+	return ( stricmp( lhs, rhs ) < 0 ); 
+}
+
+inline bool FastCaselessStringLessThan( const char * const &lhs, const char * const &rhs )	
+{ 
+	if ( !lhs ) return false;
+	if ( !rhs ) return true;
+	return ( V_stricmp_fast( lhs, rhs ) < 0 ); 
+}
 
 // Same as CaselessStringLessThan, but it ignores differences in / and \.
 inline bool CaselessStringLessThanIgnoreSlashes( const char * const &lhs, const char * const &rhs )	
@@ -81,6 +108,42 @@ inline bool CaselessStringLessThanIgnoreSlashes( const char * const &lhs, const 
 
 	return false;
 }
+
+class CDefStringLess
+{
+public:
+	CDefStringLess() {}
+	CDefStringLess( int i ) {}
+	inline bool operator()( const char * const &lhs, const char * const &rhs ) const { return ( strcmp( lhs, rhs ) < 0 ); }
+	inline bool operator!() const { return false; }
+};
+
+class CDefCaselessStringLess
+{
+public:
+	CDefCaselessStringLess() {}
+	CDefCaselessStringLess( int i ) {}
+	inline bool operator()( const char * const &lhs, const char * const &rhs ) const { return ( stricmp( lhs, rhs ) < 0 ); }
+	inline bool operator!() const { return false; }
+};
+
+class CDefFastCaselessStringLess
+{
+public:
+	CDefFastCaselessStringLess() {}
+	CDefFastCaselessStringLess( int i ) {}
+	inline bool operator()( const char * const &lhs, const char * const &rhs ) const { return ( V_stricmp_fast( lhs, rhs ) < 0 ); }
+	inline bool operator!() const { return false; }
+};
+
+class CDefCaselessStringLessIgnoreSlashes
+{
+public:
+	CDefCaselessStringLessIgnoreSlashes() {}
+	CDefCaselessStringLessIgnoreSlashes( int i ) {}
+	inline bool operator()( const char * const &lhs, const char * const &rhs ) const { return CaselessStringLessThanIgnoreSlashes( lhs, rhs ); }
+	inline bool operator!() const { return false; }
+};
 
 //-------------------------------------
 // inline these two templates to stop multiple definitions of the same code
@@ -187,7 +250,7 @@ public:
 	void SetLessFunc( const LessFunc_t &func );
 
 	// Allocation method
-	I  NewNode();
+	I  NewNode( bool bConstructElement );
 
 	// Insert method (inserts in order)
 	I  Insert( T const &insert );
@@ -266,7 +329,7 @@ protected:
 	void RemoveRebalance(I i);
 
 	// Insertion, removal
-	I  InsertAt( I parent, bool leftchild );
+	I  InsertAt( I parent, bool leftchild, bool bConstructElement );
 
 	// copy constructors not allowed
 	CUtlRBTree( CUtlRBTree<T, I, L, M> const &tree );
@@ -637,7 +700,7 @@ inline void CUtlRBTree<T, I, L, M>::SetColor( I i, typename CUtlRBTree<T, I, L, 
 #pragma warning(disable:4389) // '==' : signed/unsigned mismatch
 #endif
 template < class T, class I, typename L, class M >
-I  CUtlRBTree<T, I, L, M>::NewNode()
+I  CUtlRBTree<T, I, L, M>::NewNode( bool bConstructElement )
 {
 	I elem;
 
@@ -656,7 +719,8 @@ I  CUtlRBTree<T, I, L, M>::NewNode()
 			Assert( m_Elements.IsValidIterator( it ) );
 			if ( !m_Elements.IsValidIterator( it ) )
 			{
-				Error( "CUtlRBTree overflow!\n" );
+				Plat_FatalErrorFunc( "CUtlRBTree overflow with %u elements!\n", Count() );
+				DebuggerBreak();
 			}
 		}
 		m_LastAlloc = it;
@@ -675,7 +739,8 @@ I  CUtlRBTree<T, I, L, M>::NewNode()
 	node.m_Left = node.m_Right = node.m_Parent = InvalidIndex();
 #endif
 
-	Construct( &Element( elem ) );
+	if ( bConstructElement )
+		Construct( &Element( elem ) );
 
 	return elem;
 }
@@ -834,9 +899,9 @@ void CUtlRBTree<T, I, L, M>::InsertRebalance(I elem)
 //-----------------------------------------------------------------------------
 
 template < class T, class I, typename L, class M >
-I CUtlRBTree<T, I, L, M>::InsertAt( I parent, bool leftchild )
+I CUtlRBTree<T, I, L, M>::InsertAt( I parent, bool leftchild, bool bConstructElement )
 {
-	I i = NewNode();
+	I i = NewNode( bConstructElement );
 	LinkToParent( i, parent, leftchild );
 	++m_NumElements;
 
@@ -1464,7 +1529,7 @@ I CUtlRBTree<T, I, L, M>::Insert( T const &insert )
 	I parent;
 	bool leftchild;
 	FindInsertionPosition( insert, parent, leftchild );
-	I newNode = InsertAt( parent, leftchild );
+	I newNode = InsertAt( parent, leftchild, false );
 	CopyConstruct( &Element( newNode ), insert );
 	return newNode;
 }
@@ -1506,7 +1571,7 @@ I CUtlRBTree<T, I, L, M>::InsertIfNotFound( T const &insert )
 			return InvalidIndex();
 	}
 
-	I newNode = InsertAt( parent, leftchild );
+	I newNode = InsertAt( parent, leftchild, false );
 	CopyConstruct( &Element( newNode ), insert );
 	return newNode;
 }

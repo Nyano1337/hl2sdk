@@ -10,6 +10,8 @@
 #define UTLCOMMON_H
 #pragma once
 
+#include "utlstring.h"
+
 //-----------------------------------------------------------------------------
 // Henry Goffin (henryg) was here. Questions? Bugs? Go slap him around a bit.
 //-----------------------------------------------------------------------------
@@ -159,6 +161,7 @@ template <> struct DefaultHashFunctor<signed long> : Mix32HashFunctor { };
 template <> struct DefaultHashFunctor<unsigned long> : Mix32HashFunctor { };
 template <> struct DefaultHashFunctor<void*> : PointerHashFunctor { };
 template <> struct DefaultHashFunctor<const void*> : PointerHashFunctor { };
+template <> struct DefaultHashFunctor<CUtlStringToken> : Mix32HashFunctor { };
 #if !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED)
 template <> struct DefaultHashFunctor<wchar_t> : Mix32HashFunctor { };
 #endif

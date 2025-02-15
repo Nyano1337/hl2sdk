@@ -5,6 +5,7 @@
 #pragma once
 #endif
 
+#include "string_t.h"
 #include "datamap.h"
 #include "vector.h"
 #include "vector2d.h"
@@ -14,10 +15,11 @@
 #include "entityhandle.h"
 #include "tier1/bufferstring.h"
 #include "tier1/utlscratchmemory.h"
+#include "resourcefile/resourcetype.h"
 
-// Non-implemented classes/structs
-struct ResourceBindingBase_t;
-typedef const ResourceBindingBase_t *ResourceHandle_t;
+#include "tier0/memdbgon.h"
+
+FORWARD_DECLARE_HANDLE( HSCRIPT );
 
 // ========
 
@@ -42,12 +44,7 @@ public:
 
 	static void *Allocate(int nSize)
 	{
-		// GAMMACASE: Remove #if condition once CUtlScratchMemoryPool is finished.
-#if defined(UTLSCRATCHMEMORYPOOL_FINISHED)
-		return sm_pMemoryPool.AllocAligned(nSize, 8 * (nSize >= 16) + 8);
-#else
-		return NULL;
-#endif
+		return sm_pMemoryPool->AllocAligned(nSize, 8 * (nSize >= 16) + 8);
 	}
 
 	static void Activate(CUtlScratchMemoryPool *pMemoryPool, bool bEnable)
@@ -59,7 +56,7 @@ private:
 	static CUtlScratchMemoryPool *sm_pMemoryPool;
 };
 
-inline const char *VariantFieldTypeName(int16 eType)
+inline const char *VariantFieldTypeName(fieldtype_t eType)
 {
 	switch(eType)
 	{
@@ -132,7 +129,7 @@ DECLARE_DEDUCE_VARIANT_FIELDTYPE(FIELD_EHANDLE, CEntityHandle);
 DECLARE_DEDUCE_VARIANT_FIELDTYPE(FIELD_RESOURCE, ResourceHandle_t);
 DECLARE_DEDUCE_VARIANT_FIELDTYPE(FIELD_UTLSTRINGTOKEN, CUtlStringToken);
 
-#define VariantDeduceType( T ) VariantTypeDeducer<T>::FIELD_TYPE
+#define VariantDeduceType( T ) (fieldtype_t)VariantTypeDeducer<T>::FIELD_TYPE
 #undef DECLARE_DEDUCE_VARIANT_FIELDTYPE
 
 template <typename T>
@@ -796,7 +793,7 @@ public:
 	template <typename T>
 	bool AssignTo(T *pDest)
 	{
-		int16 destType = VariantDeduceType(T);
+		fieldtype_t destType = VariantDeduceType(T);
 		if(destType == FIELD_VOID)
 		{
 			return false;
@@ -906,26 +903,26 @@ public:
 		switch(newType)
 		{
 			case FIELD_VOID:			successful = true; Free(); m_type = FIELD_VOID; m_pData = NULL; break;
-			case FIELD_FLOAT:			if(successful = AssignTo((float *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_FLOAT64:			if(successful = AssignTo((float64 *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_INTEGER:			if(successful = AssignTo((int *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_UINT:			if(successful = AssignTo((uint *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_INTEGER64:		if(successful = AssignTo((int64 *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_UINT64:			if(successful = AssignTo((uint64 *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_BOOLEAN:			if(successful = AssignTo((bool *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_CHARACTER:		if(successful = AssignTo((char *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_STRING:			if(successful = AssignTo((string_t *)&pData)) { Set(newType, &pData); } break;
+			case FIELD_FLOAT:			if((successful = AssignTo((float *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_FLOAT64:			if((successful = AssignTo((float64 *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_INTEGER:			if((successful = AssignTo((int *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_UINT:			if((successful = AssignTo((uint *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_INTEGER64:		if((successful = AssignTo((int64 *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_UINT64:			if((successful = AssignTo((uint64 *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_BOOLEAN:			if((successful = AssignTo((bool *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_CHARACTER:		if((successful = AssignTo((char *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_STRING:			if((successful = AssignTo((string_t *)&pData))) { Set(newType, &pData); } break;
 			case FIELD_CSTRING:			successful = true; CopyData(ToString(), true); break;
-			case FIELD_HSCRIPT:			if(successful = AssignTo((HSCRIPT *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_EHANDLE:			if(successful = AssignTo((CEntityHandle *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_RESOURCE:		if(successful = AssignTo((ResourceHandle_t *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_UTLSTRINGTOKEN:	if(successful = AssignTo((CUtlStringToken *)&pData)) { Set(newType, &pData); } break;
-			case FIELD_VECTOR:			{ Vector vec; if(successful = AssignTo(&vec)) { CopyData(vec, true); } break; }
-			case FIELD_VECTOR2D:		{ Vector2D vec; if(successful = AssignTo(&vec)) { CopyData(vec, true); } break; }
-			case FIELD_VECTOR4D:		{ Vector4D vec; if(successful = AssignTo(&vec)) { CopyData(vec, true); } break; }
-			case FIELD_COLOR32:			{ Color clr; if(successful = AssignTo(&clr)) { CopyData(clr, true); } break; }
-			case FIELD_QANGLE:			{ QAngle ang; if(successful = AssignTo(&ang)) { CopyData(ang, true); } break; }
-			case FIELD_QUATERNION:		{ Quaternion quat; if(successful = AssignTo(&quat)) { CopyData(quat, true); } break; }
+			case FIELD_HSCRIPT:			if((successful = AssignTo((HSCRIPT *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_EHANDLE:			if((successful = AssignTo((CEntityHandle *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_RESOURCE:		if((successful = AssignTo((ResourceHandle_t *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_UTLSTRINGTOKEN:	if((successful = AssignTo((CUtlStringToken *)&pData))) { Set(newType, &pData); } break;
+			case FIELD_VECTOR:			{ Vector vec; if((successful = AssignTo(&vec))) { CopyData(vec, true); } break; }
+			case FIELD_VECTOR2D:		{ Vector2D vec; if((successful = AssignTo(&vec))) { CopyData(vec, true); } break; }
+			case FIELD_VECTOR4D:		{ Vector4D vec; if((successful = AssignTo(&vec))) { CopyData(vec, true); } break; }
+			case FIELD_COLOR32:			{ Color clr; if((successful = AssignTo(&clr))) { CopyData(clr, true); } break; }
+			case FIELD_QANGLE:			{ QAngle ang; if((successful = AssignTo(&ang))) { CopyData(ang, true); } break; }
+			case FIELD_QUATERNION:		{ Quaternion quat; if((successful = AssignTo(&quat))) { CopyData(quat, true); } break; }
 		}
 
 		if(successful)
@@ -938,7 +935,7 @@ public:
 
 	const char *ToString()
 	{
-		static CBufferStringGrowable<200> szBuf;
+		static CBufferStringN<200> szBuf;
 		AssignTo(szBuf);
 		return szBuf.Get();
 	}
@@ -969,8 +966,7 @@ public:
 		ResourceHandle_t m_hResource;
 	};
 
-	// fieldtype_t
-	int16 m_type;
+	fieldtype_t m_type;
 
 	// CVFlags_t flags
 	uint16 m_flags;
@@ -980,5 +976,7 @@ typedef CVariantBase<CVariantDefaultAllocator> CVariant;
 typedef CVariantBase<CEntityVariantAllocator> CEntityVariant;
 
 typedef CVariant variant_t;
+
+#include "tier0/memdbgoff.h"
 
 #endif // CVARIANT_H

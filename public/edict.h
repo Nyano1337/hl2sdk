@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -46,7 +46,6 @@ public:
 	CGlobalVars();
 
 public:
-	
 	// Current map
 	string_t		mapname;
 	string_t		startspot;

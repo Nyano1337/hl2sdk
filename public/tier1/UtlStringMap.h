@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//===== Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -16,7 +16,9 @@ template <class T>
 class CUtlStringMap
 {
 public:
-	CUtlStringMap( bool caseInsensitive = true ) : m_SymbolTable( 0, 32, caseInsensitive )
+	CUtlStringMap( bool caseInsensitive = true, int initsize = 32 ) : 
+	  m_SymbolTable( 0, 32, caseInsensitive ),
+		  m_Vector( initsize )
 	{
 	}
 
@@ -47,7 +49,7 @@ public:
 
 	bool Defined( const char *pString ) const
 	{
-		return m_SymbolTable.Find( pString ) != UTL_INVAL_SYMBOL;
+		return m_SymbolTable.Find( pString ).IsValid();
 	}
 
 	UtlSymId_t Find( const char *pString ) const
@@ -55,9 +57,9 @@ public:
 		return m_SymbolTable.Find( pString );
 	}
 
-	UtlSymId_t AddString( const char *pString )
+	UtlSymId_t AddString( const char *pString, bool* created = NULL )
 	{
-		CUtlSymbol symbol = m_SymbolTable.AddString( pString );
+		CUtlSymbol symbol = m_SymbolTable.AddString( pString, created );
 		int index = ( int )( UtlSymId_t )symbol;
 		if( m_Vector.Count() <= index )
 		{

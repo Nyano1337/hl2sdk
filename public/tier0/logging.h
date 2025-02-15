@@ -85,7 +85,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 class CLoggingSystem;
-class CThreadFastMutex;
+class CThreadSpinMutex;
 
 //-----------------------------------------------------------------------------
 // Maximum length of a sprintf'ed logging message.
@@ -144,30 +144,35 @@ typedef int LoggingTagHandle_t;
 enum LoggingSeverity_t
 {
 	//-----------------------------------------------------------------------------
+	// A debug message.
+	//-----------------------------------------------------------------------------
+	LS_DETAILED = 1,
+
+	//-----------------------------------------------------------------------------
 	// An informative logging message.
 	//-----------------------------------------------------------------------------
-	LS_MESSAGE = 1,
+	LS_MESSAGE = 2,
 
 	//-----------------------------------------------------------------------------
 	// A warning, typically non-fatal
 	//-----------------------------------------------------------------------------
-	LS_WARNING = 2,
+	LS_WARNING = 3,
 
 	//-----------------------------------------------------------------------------
 	// A message caused by an Assert**() operation.
 	//-----------------------------------------------------------------------------
-	LS_ASSERT = 3,
+	LS_ASSERT = 4,
 
 	//-----------------------------------------------------------------------------
 	// An error, typically fatal/unrecoverable.
 	//-----------------------------------------------------------------------------
-	LS_ERROR = 4,
+	LS_ERROR = 5,
 
 	//-----------------------------------------------------------------------------
 	// A placeholder level, higher than any legal value.
 	// Not a real severity value!
 	//-----------------------------------------------------------------------------
-	LS_HIGHEST_SEVERITY = 5,
+	LS_HIGHEST_SEVERITY = 6,
 };
 
 enum LoggingVerbosity_t
@@ -715,7 +720,7 @@ private:
 	// Protects all data in this class except the registered channels 
 	// (which are supposed to be registered using the macros at static/global init time).
 	// It is assumed that this mutex is reentrant safe on all platforms.
-	CThreadFastMutex *m_pStateMutex;
+	CThreadSpinMutex *m_pStateMutex;
 	
 	// The index of the current "global" state of the logging system.  By default, all threads use this state
 	// for logging unless a given thread has pushed the logging state with bThreadLocal == true.

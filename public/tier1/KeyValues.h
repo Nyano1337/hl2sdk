@@ -20,10 +20,11 @@
 #endif
 #endif
 
+#include "platform.h"
 #include "utlvector.h"
 #include "Color.h"
 #include "exprevaluator.h"
-#include <vstdlib/IKeyValuesSystem.h>
+#include "IKeyValuesSystem.h"
 
 class IFileSystem;
 class CUtlBuffer;
@@ -49,15 +50,15 @@ typedef void *FileHandle_t;
 
 DECLARE_POINTER_HANDLE( HTemporaryKeyValueAllocationScope );
 
+PLATFORM_INTERFACE KeyValues *KeyValuesFromJSON( CUtlBuffer *buf, bool allow_unterminated = false, bool *parsed_successfully = nullptr );
+PLATFORM_INTERFACE bool KeyValuesToJSON( KeyValues *kv, CUtlBuffer *buf );
+
 class CTemporaryKeyValues
 {
-	CTemporaryKeyValues() : m_pKeyValues(nullptr), m_hScope() {}
+	CTemporaryKeyValues() : m_pKeyValues( nullptr ), m_hScope() {}
 	~CTemporaryKeyValues()
 	{
-		// GAMMACASE: TODO: Complete with actual KeyValuesSystem call once it's reversed too.
-#if 0
-		KeyValuesSystem()->ReleaseTemporaryAllocationScope( m_hScope );
-#endif
+		KeyValuesSystem()->ReleaseTemporaryKeyValues( this );
 	}
 
 private:
@@ -84,6 +85,12 @@ public:
 		TYPE_COMPILED_INT_1,			// hack to collapse 1 in the compiled format
 		TYPE_NUMTYPES,
 	};
+
+protected:
+	// AMNOTE: Valve scrapped the public-facing version of these,
+	// so we have to expose as protected for the scaffolds below in KeyValues.
+	char const *Internal_GetString( const char *defaultValue, char *szBuf, size_t maxlen );
+	const wchar_t *Internal_GetWString( const wchar_t *defaultValue, wchar_t *szBuf, size_t maxlen );
 
 private:
 	IKeyValuesSystem *KVSystem() const;
@@ -119,8 +126,6 @@ private:
 	float Internal_GetFloat() const;
 	int Internal_GetInt() const;
 	uint64 Internal_GetUint64() const;
-	char const *Internal_GetString( const char *defaultValue, char *szBuf, size_t maxlen );
-	const wchar_t *Internal_GetWString( const wchar_t *defaultValue, wchar_t *szBuf, size_t maxlen );
 	void *Internal_GetPtr() const;
 	
 	void Internal_SetColor( Color value );
@@ -148,7 +153,7 @@ private:
 		KeyValues *m_pSub;
 	};
 
-	void *m_pUnk;
+	IKeyValuesSystem *m_pKVSystem;
 
 	uint32 m_iKeyNameCaseSensitive : 24;
 	uint32 m_iDataType : 3;
@@ -240,7 +245,7 @@ public:
 	// File access. Set UsesEscapeSequences true, if resource file/buffer uses Escape Sequences (eg \n, \t)
 	void UsesEscapeSequences( bool state ); // default false
 	bool LoadFromFile( IFileSystem *filesystem, const char *resourceName, const char *pathID = NULL, GetSymbolProc_t pfnEvaluateSymbolProc = NULL, void *pUnk1 = NULL, const char *pUnk2 = NULL );
-	bool SaveToFile( IFileSystem *filesystem, const char *resourceName, const char *pathID = NULL, bool bAllowEmptyString = false );
+	bool SaveToFile( IFileSystem *filesystem, const char *resourceName, const char *pathID = NULL, bool bAllowEmptyString = false, bool binaryWrite = true );
 	// Read from a buffer...  Note that the buffer must be null terminated
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IFileSystem *pFileSystem = NULL, const char *pPathID = NULL, GetSymbolProc_t pfnEvaluateSymbolProc = NULL, IKeyValuesErrorSpew *pErrorSpew = NULL, void *pUnk1 = NULL, const char *pUnk2 = NULL );
 
@@ -254,9 +259,9 @@ public:
 
 	// Find a keyValue, create it if it is not found.
 	// Set bCreate to true to create the key if it doesn't already exist (which ensures a valid pointer will be returned)
-	KeyValues *FindKey( const char *keyName, bool bCreate );
+	KeyValues *FindKey( const char *keyName, bool bCreate = false );
 	const KeyValues *FindKey( const char *keyName ) const;
-	KeyValues *FindKey( HKeySymbol keySymbol ) const;
+	KeyValues *FindKey( HKeySymbol keySymbol );
 	KeyValues *FindKeyAndParent( const char *keyName, KeyValues **pParent, bool );
 	bool FindAndDeleteSubKey( const char *keyName );
 
@@ -281,9 +286,9 @@ public:
 	// NOTE: GetFirstSubKey/GetNextKey will iterate keys AND values. Use the functions 
 	// below if you want to iterate over just the keys or just the values.
 	//
-	KeyValues *GetFirstSubKey() const;	// returns the first subkey in the list
-	KeyValues *FindLastSubKey() const;
-	KeyValues *GetNextKey() const;		// returns the next subkey
+	KeyValues *GetFirstSubKey();	// returns the first subkey in the list
+	KeyValues *FindLastSubKey();
+	KeyValues *GetNextKey();		// returns the next subkey
 	void SetNextKey( KeyValues *pDat );
 
 	//
@@ -299,11 +304,11 @@ public:
 	//     {
 	//         Msg( "Int value: %d\n", pValue->GetInt() );  // Assuming pValue->GetDataType() == TYPE_INT...
 	//     }
-	KeyValues *GetFirstTrueSubKey() const;
-	KeyValues *GetNextTrueSubKey() const;
+	KeyValues *GetFirstTrueSubKey();
+	KeyValues *GetNextTrueSubKey();
 
-	KeyValues *GetFirstValue() const;	// When you get a value back, you can use GetX and pass in NULL to get the value.
-	KeyValues *GetNextValue() const;
+	KeyValues *GetFirstValue();	// When you get a value back, you can use GetX and pass in NULL to get the value.
+	KeyValues *GetNextValue();
 
 
 	// Data access
@@ -318,15 +323,15 @@ public:
 	bool IsEmpty( const char *keyName = NULL ) const;
 
 	// Data access
-	int GetInt( HKeySymbol keySymbol, int defaultValue = 0 ) const;
-	uint64 GetUint64( HKeySymbol keySymbol, uint64 defaultValue = 0 ) const;
-	float GetFloat( HKeySymbol keySymbol, float defaultValue = 0.0f ) const;
+	int GetInt( HKeySymbol keySymbol, int defaultValue = 0 );
+	uint64 GetUint64( HKeySymbol keySymbol, uint64 defaultValue = 0 );
+	float GetFloat( HKeySymbol keySymbol, float defaultValue = 0.0f );
 	const char *GetString( HKeySymbol keySymbol, const char *defaultValue = "", char *pszOut = NULL, size_t maxlen = 0 );
 	const wchar_t *GetWString( HKeySymbol keySymbol, const wchar_t *defaultValue = L"", wchar_t *pszOut = NULL, size_t maxlen = 0 );
-	void *GetPtr( HKeySymbol keySymbol, void *defaultValue = (void *)0 ) const;
-	Color GetColor( HKeySymbol keySymbol, const Color &defaultColor = Color( 0, 0, 0, 0 ) ) const;
-	bool GetBool( HKeySymbol keySymbol, bool defaultValue = false ) const { return GetInt( keySymbol, defaultValue ? 1 : 0 ) ? true : false; }
-	bool IsEmpty( HKeySymbol keySymbol ) const;
+	void *GetPtr( HKeySymbol keySymbol, void *defaultValue = (void *)0 );
+	Color GetColor( HKeySymbol keySymbol, const Color &defaultColor = Color( 0, 0, 0, 0 ) );
+	bool GetBool( HKeySymbol keySymbol, bool defaultValue = false ) { return GetInt( keySymbol, defaultValue ? 1 : 0 ) ? true : false; }
+	bool IsEmpty( HKeySymbol keySymbol );
 
 	// Key writing
 	void SetWString( const char *keyName, const wchar_t *value );
@@ -353,7 +358,7 @@ public:
 
 	KeyValues &operator=( KeyValues &src );
 
-	void RecursiveSaveToFile( CUtlBuffer &buf, int indentLevel, bool bSortKeys = false, bool bAllowEmptyString = false );
+	void RecursiveSaveToFile( CUtlBuffer &buf, int indentLevel, bool bSortKeys = false, bool bAllowEmptyString = false ) const;
 	void RecursiveSaveToLocalizationFile( IFileSystem *filesystem, void *buf, int indentLevel, bool bAllowEmptyString = false );
 
 	bool WriteAsBinary( CUtlBuffer &buffer );
@@ -375,9 +380,9 @@ public:
 
 	int Count( void ) const;
 
-	KeyValues *Element( int nIndex ) const;
+	KeyValues *Element( int nIndex );
 
-	CKeyValues_Data::types_t GetDataType( const char *keyName = NULL );
+	CKeyValues_Data::types_t GetDataType( const char *keyName = NULL ) const;
 
 	// unpack a key values list into a structure
 	void UnpackIntoStructure( struct KeyValuesUnpackStructure const *pUnpackTable, void *pDest );
@@ -441,19 +446,19 @@ struct KeyValuesUnpackStructure
 //-----------------------------------------------------------------------------
 // inline methods
 //-----------------------------------------------------------------------------
-inline int KeyValues::GetInt( HKeySymbol keySymbol, int defaultValue ) const
+inline int KeyValues::GetInt( HKeySymbol keySymbol, int defaultValue )
 {
 	KeyValues *dat = FindKey( keySymbol );
 	return dat ? dat->GetInt( (const char *)NULL, defaultValue ) : defaultValue;
 }
 
-inline uint64 KeyValues::GetUint64( HKeySymbol keySymbol, uint64 defaultValue ) const
+inline uint64 KeyValues::GetUint64( HKeySymbol keySymbol, uint64 defaultValue )
 {
 	KeyValues *dat = FindKey( keySymbol );
 	return dat ? dat->GetUint64( (const char *)NULL, defaultValue ) : defaultValue;
 }
 
-inline float KeyValues::GetFloat( HKeySymbol keySymbol, float defaultValue ) const
+inline float KeyValues::GetFloat( HKeySymbol keySymbol, float defaultValue )
 {
 	KeyValues *dat = FindKey( keySymbol );
 	return dat ? dat->GetFloat( (const char *)NULL, defaultValue ) : defaultValue;
@@ -471,24 +476,35 @@ inline const wchar_t *KeyValues::GetWString( HKeySymbol keySymbol, const wchar_t
 	return dat ? dat->GetWString( (const char *)NULL, defaultValue, pszOut, maxlen ) : defaultValue;
 }
 
-inline void *KeyValues::GetPtr( HKeySymbol keySymbol, void *defaultValue ) const
+inline void *KeyValues::GetPtr( HKeySymbol keySymbol, void *defaultValue )
 {
 	KeyValues *dat = FindKey( keySymbol );
 	return dat ? dat->GetPtr( (const char *)NULL, defaultValue ) : defaultValue;
 }
 
-inline Color KeyValues::GetColor( HKeySymbol keySymbol, const Color &defaultColor ) const
+inline Color KeyValues::GetColor( HKeySymbol keySymbol, const Color &defaultColor )
 {
 	KeyValues *dat = FindKey( keySymbol );
 	return dat ? dat->GetColor( (const char *)NULL, defaultColor ) : defaultColor;
 }
 
-inline bool KeyValues::IsEmpty( HKeySymbol keySymbol ) const
+inline bool KeyValues::IsEmpty( HKeySymbol keySymbol )
 {
 	KeyValues *dat = FindKey( keySymbol );
 	return dat ? dat->IsEmpty() : true;
 }
 
+inline const char *KeyValues::GetString( const char *keyName, const char *defaultValue, char *pszOut, size_t maxlen )
+{
+	KeyValues *dat = FindKey( keyName );
+	return dat ? dat->Internal_GetString( defaultValue, pszOut, maxlen ) : defaultValue;
+}
+
+inline const wchar_t *KeyValues::GetWString( const char *keyName, const wchar_t *defaultValue, wchar_t *pszOut, size_t maxlen )
+{
+	KeyValues *dat = FindKey( keyName );
+	return dat ? dat->Internal_GetWString( defaultValue, pszOut, maxlen ) : defaultValue;
+}
 
 //
 // KeyValuesDumpContext and generic implementations

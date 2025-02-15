@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright ï¿½ 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -16,68 +16,32 @@
 #include "tier0/dbg.h"
 #include "dt_send.h"
 #include "networkstringtabledefs.h"
+#include "networksystem/iflattenedserializers.h"
 
-
-class ServerClass;
-class SendTable;
-
-extern ServerClass *g_pServerClassHead;
-
+class CEntityClass;
 
 class ServerClass
 {
 public:
-				ServerClass( char *pNetworkName, SendTable *pTable )
-				{
-					m_pNetworkName = pNetworkName;
-					m_pTable = pTable;
-					m_InstanceBaselineIndex = INVALID_STRING_INDEX;
-					// g_pServerClassHead is sorted alphabetically, so find the correct place to insert
-					if ( !g_pServerClassHead )
-					{
-						g_pServerClassHead = this;
-						m_pNext = NULL;
-					}
-					else
-					{
-						ServerClass *p1 = g_pServerClassHead;
-						ServerClass *p2 = p1->m_pNext;
-
-						// Comment from Alfred on 7/2/2004 6:43:24 PM in CL 91253, //ValveGames/main/src/public/server_class.h#18:
-						// --->  use _stricmp because Q_stricmp isn't hooked up properly yet
-						// [Sergiy, 10/19/2009] hooking up V_stricmp
-						if ( V_stricmp( p1->GetName(), pNetworkName ) > 0)
-						{
-							m_pNext = g_pServerClassHead;
-							g_pServerClassHead = this;
-							p1 = NULL;
-						}
-
-						while( p1 )
-						{
-							if ( p2 == NULL || V_stricmp( p2->GetName(), pNetworkName ) > 0)
-							{
-								m_pNext = p2;
-								p1->m_pNext = this;
-								break;
-							}
-							p1 = p2;
-							p2 = p2->m_pNext;
-						}	
-					}
-				}
-
 	const char*	GetName()		{ return m_pNetworkName; }
 
-
 public:
-	char						*m_pNetworkName;
-	SendTable					*m_pTable;
-	ServerClass					*m_pNext;
-	int							m_ClassID;	// Managed by the engine.
+	const char *m_pDLLClassName; // On the server this matches the m_pNetworkName, on the client it is prefixed with C_*
+	const char *m_pNetworkName;
+	
+	CEntityClass *m_pEntityClass;
+
+	FlattenedSerializerDesc_t m_flattenedSerializer;
+
+	int m_ClassID;
 
 	// This is an index into the network string table (sv.GetInstanceBaselineTable()).
-	int							m_InstanceBaselineIndex; // INVALID_STRING_INDEX if not initialized yet.
+	int m_InstanceBaselineIndex; // INVALID_STRING_INDEX if not initialized yet.
+
+	bool m_Unk1;
+	bool m_Unk2; // Set if one of the base classes has the FENTCLASS_UNK008 flag
+	bool m_Unk3; // Set if one of the base classes has the FENTCLASS_UNK009 flag
+	bool m_Unk4;
 };
 
 
@@ -143,6 +107,3 @@ class CBaseNetworkable;
 
 
 #endif
-
-
-

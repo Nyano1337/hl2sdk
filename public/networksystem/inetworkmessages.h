@@ -8,6 +8,7 @@
 #include <eiface.h>
 
 #include <networksystem/inetworkserializer.h>
+#include <networksystem/netmessage.h>
 #include <tier1/bitbuf.h>
 #include <tier1/utlstring.h>
 #include <tier1/utlsymbol.h>
@@ -24,9 +25,23 @@ struct NetworkUnserializerInfo_t;
 struct NetworkableData_t;
 struct NetworkFieldInfo_t;
 struct FieldMetaInfo_t;
-struct NetworkFieldChangedDelegateType_t;
-struct NetworkFieldChangeCallbackPerformType_t;
 class CSchemaType;
+
+enum NetworkFieldChangeCallbackPerformType_t
+{
+	NETWORK_FIELD_CHANGE_CALLBACK_PERFORM_ON_CHANGE,
+	NETWORK_FIELD_CHANGE_CALLBACK_PERFORM_ON_CHANGE_OR_CREATE
+};
+
+enum NetworkFieldChangedDelegateType_t
+{
+	NETWORK_FIELD_CHANGED_NO_VALUE,
+	NETWORK_FIELD_CHANGED_WITH_VALUE,
+	NETWORK_FIELD_CHANGED_ARRAY_WITH_VALUE,
+	NETWORK_FIELD_CHANGED_NO_VALUE_NO_CONTEXT,
+	NETWORK_FIELD_CHANGED_TYPE_NONE,
+	NETWORK_FIELD_CHANGED_COUNT_TYPE
+};
 
 typedef NetworkFieldResult_t ( *NetworkFieldSerializeCB )(NetworkSerializerInfo_t const&, int, NetworkableData_t *);
 typedef NetworkFieldResult_t ( *NetworkFieldUnserializeCB )(NetworkUnserializerInfo_t const&, int, NetworkableData_t *);
@@ -46,30 +61,33 @@ abstract_class INetworkMessages
 public:
 	virtual void RegisterNetworkCategory(NetworkCategoryId nCategoryId, char const *szDebugName) = 0;
 
-	virtual void AssociateNetMessageWithChannelCategoryAbstract(INetworkSerializable *pNetMessage, NetworkCategoryId nCategoryId, bool) = 0;
+	virtual void AssociateNetMessageWithChannelCategoryAbstract(INetworkMessageInternal *pNetMessage, NetworkCategoryId nCategoryId, bool) = 0;
 
 	// Passing nMessasgeId as -1 would auto-assign the id even if bAutoAssignId is false based on the message name hash.
-	virtual INetworkSerializable *FindOrCreateNetMessage(int nMessageId, IProtobufBinding const *pProtoBinding, uint nMessageSize, INetworkSerializerBindingBuildFilter *pUnused, bool bCreateIfNotFound = true, bool bAutoAssignId = false) = 0;
+	virtual INetworkMessageInternal *FindOrCreateNetMessage(int nMessageId, IProtobufBinding const *pProtoBinding, uint nMessageSize, INetworkSerializerBindingBuildFilter *pUnused, bool bCreateIfNotFound = true, bool bAutoAssignId = false) = 0;
 
-	virtual bool SerializeAbstract(bf_write &pBuf, INetworkSerializable *pNetMessage, void const *pData) = 0;
+	virtual bool Serialize(bf_write &pBuf, const CNetMessage *pData) = 0;
 
-	virtual bool UnserializeAbstract(bf_read &pBuf, INetworkSerializable **pNetMessage, void **pData) = 0;
-	virtual bool UnserializeAbstract(bf_read &pBuf, INetworkSerializable *pNetMessage, void *pData) = 0;
+	virtual bool UnserializeMessageInternal( bf_read &pBuf, CNetMessage *pData ) = 0;
+	virtual bool SerializeMessageInternal( bf_write &pBuf, const CNetMessage *pData ) = 0;
 
-	virtual void *AllocateNetMessageAbstract(INetworkSerializable *pNetMessage) = 0;
-	virtual void *AllocateAndCopyConstructNetMessageAbstract(INetworkSerializable *pNetMessage, void const *pFrom) = 0;
+	// Returns nullptr if failed to unserialize, reason is written to err_reason
+	virtual CNetMessage *UnserializeFromStream(bf_read &pBuf, CUtlString &err_reason) = 0;
+	virtual bool SerializeAbstract(bf_write &pBuf, INetworkMessageInternal *pNetMessage, const CNetMessage *pData) = 0;
 
-	virtual void DeallocateNetMessageAbstract(INetworkSerializable *pNetMessage, void *pData) = 0;
+	virtual CNetMessage *AllocateAndCopyConstructNetMessageAbstract(INetworkMessageInternal *pNetMessage, const CNetMessage *pFrom) = 0;
+
+	virtual void DeallocateNetMessageAbstract(INetworkMessageInternal *pNetMessage, CNetMessage *pData) = 0;
 
 	virtual void *RegisterNetworkFieldSerializer(char const *, NetworkSerializationMode_t, NetworkableDataType_t, int, NetworkFieldSerializeCB, NetworkFieldUnserializeCB, NetworkFieldInfoCB, 
 		NetworkFieldMetaInfoCB, NetworkableDataCB, NetworkUnkCB001, NetworkFieldSerializeCB, NetworkFieldUnserializeCB) = 0;
 	virtual void *RegisterNetworkArrayFieldSerializer(char const *, NetworkSerializationMode_t, NetworkFieldSerializeBufferCB, NetworkFieldUnserializeBufferCB, NetworkFieldInfoCB,
 		NetworkFieldMetaInfoCB, NetworkFieldSerializeBufferCB, NetworkFieldUnserializeBufferCB) = 0;
 
-	virtual NetMessageInfo_t *GetNetMessageInfo(INetworkSerializable *pNetMessage) = 0;
+	virtual NetMessageInfo_t *GetNetMessageInfo(INetworkMessageInternal *pNetMessage) = 0;
 
-	virtual INetworkSerializable* FindNetworkMessage(char const *szName) = 0;
-	virtual INetworkSerializable* FindNetworkMessagePartial(char const *szPartialName) = 0;
+	virtual INetworkMessageInternal* FindNetworkMessage(char const *szName) = 0;
+	virtual INetworkMessageInternal* FindNetworkMessagePartial(char const *szPartialName) = 0;
 
 	virtual NetworkGroupId FindNetworkGroup(char const *szGroup, bool bCreateIfNotFound = false) = 0;
 	virtual int GetNetworkGroupCount() = 0;
@@ -83,9 +101,11 @@ public:
 	virtual void SetNetworkSerializationContextData(char const *szContext, NetworkSerializationMode_t, void *) = 0;
 	virtual void *GetNetworkSerializationContextData(char const *szContext) = 0;
 
-	virtual void unk001() = 0;
+	virtual void unk101() = 0;
+	virtual void unk102() = 0;
 
-	virtual void RegisterNetworkFieldChangeCallbackInternal(char const *, NetworkFieldChangedDelegateType_t, CUtlAbstractDelegate, NetworkFieldChangeCallbackPerformType_t, int) = 0;
+	// Doesn't support duplicated callbacks per field
+	virtual void RegisterNetworkFieldChangeCallbackInternal(char const *szFieldName, uint64, NetworkFieldChangedDelegateType_t fieldType, CUtlAbstractDelegate pCallback, NetworkFieldChangeCallbackPerformType_t cbPerformType, int unkflag ) = 0;
 
 	virtual void AllowAdditionalMessageRegistration(bool bAllow) = 0;
 	virtual bool IsAdditionalMessageRegistrationAllowed() = 0;
@@ -95,7 +115,7 @@ public:
 
 	virtual void RegisterFieldChangeCallbackPriority(int nPriority) = 0;
 
-	virtual INetworkSerializable *FindNetworkMessageById(int nMessageId) = 0;
+	virtual INetworkMessageInternal *FindNetworkMessageById(int nMessageId) = 0;
 
 	virtual void SetIsForServer(bool bIsForServer) = 0;
 	virtual bool GetIsForServer() = 0;

@@ -18,11 +18,13 @@
 
 #include "interfaces/interfaces.h"
 #include "tier1/bitbuf.h"
-#include "tier1/generichash.h"
+#include "tier1/keyvalues3.h"
 #include "tier1/utlstring.h"
 #include "entity2/entityinstance.h"
 
 class CMsgSource1LegacyGameEvent;
+template<typename PROTO_TYPE>
+class CNetMessagePB;
 class CPlayerSlot;
 class CBasePlayer;
 class CEntityIndex;
@@ -62,28 +64,7 @@ Valid data types are string, float, long, short, byte & bool. If a
 data field should not be broadcasted to clients, use the type "local".
 */
 
-struct GameEventKeySymbol_t
-{
-	inline GameEventKeySymbol_t(const char* keyName): m_nHashCode(0), m_pszKeyName(NULL)
-	{		
-		if (!keyName || !keyName[0])
-			return;
-
-		m_nHashCode = MurmurHash2LowerCase(keyName, strlen(keyName), 0x31415926);
-		m_pszKeyName = keyName;
-
-#if 0
-		if (g_bUpdateStringTokenDatabase)
-		{
-			RegisterStringToken(m_nHashCode, keyName, 0, true);
-		}
-#endif
-	}
-
-private:
-	unsigned int m_nHashCode;
-	const char* m_pszKeyName;
-};
+typedef CKV3MemberName GameEventKeySymbol_t;
 
 
 #define MAX_EVENT_NAME_LENGTH	32		// max game event name length
@@ -93,11 +74,6 @@ private:
 
 class KeyValues;
 class CGameEvent;
-
-abstract_class IToolGameEventAPI
-{
-	virtual void unk001( void * ) = 0;
-};
 
 abstract_class IGameEvent
 {
@@ -140,14 +116,14 @@ public:
 	virtual void SetFloat( const GameEventKeySymbol_t &keySymbol, float value ) = 0;
 	virtual void SetString( const GameEventKeySymbol_t &keySymbol, const char *value ) = 0;
 	virtual void SetPtr( const GameEventKeySymbol_t &keySymbol, void *value ) = 0;
-
+	
+	virtual void SetEntity(const GameEventKeySymbol_t &keySymbol, CEntityInstance *value) = 0;
 	virtual void SetEntity( const GameEventKeySymbol_t &keySymbol, CEntityIndex value ) = 0;
-	virtual void SetEntity( const GameEventKeySymbol_t &keySymbol, CEntityInstance *value ) = 0;
 
-	// Also sets the _pawn key
-	virtual void SetPlayer( const GameEventKeySymbol_t &keySymbol, CPlayerSlot value ) = 0;
 	// Also sets the _pawn key (Expects pawn entity to be passed)
 	virtual void SetPlayer( const GameEventKeySymbol_t &keySymbol, CEntityInstance *pawn ) = 0;
+	// Also sets the _pawn key
+	virtual void SetPlayer( const GameEventKeySymbol_t &keySymbol, CPlayerSlot value ) = 0;
 
 	// Expects pawn entity to be passed, will set the controller entity as a controllerKeyName
 	// and pawn entity as a pawnKeyName.
@@ -158,8 +134,7 @@ public:
 	// Something script vm related
 	virtual void unk001() = 0;
 
-	// Not based on keyvalues anymore as it seems like
-	virtual void* GetDataKeys() const = 0;
+	virtual KeyValues3* GetDataKeys() const = 0;
 };
 
 abstract_class IGameEventListener2
@@ -172,7 +147,7 @@ public:
 	virtual void FireGameEvent( IGameEvent *event ) = 0;
 };
 
-abstract_class IGameEventManager2 : public IBaseInterface, public IToolGameEventAPI
+abstract_class IGameEventManager2 : public IBaseInterface
 {
 public:
 	virtual	~IGameEventManager2( void ) {};
@@ -209,8 +184,8 @@ public:
 	virtual void FreeEvent( IGameEvent *event ) = 0;
 
 	// write/read event to/from bitbuffer
-	virtual bool SerializeEvent( IGameEvent *event, CMsgSource1LegacyGameEvent *ev ) = 0;
-	virtual IGameEvent *UnserializeEvent( const CMsgSource1LegacyGameEvent &ev ) = 0; // create new KeyValues, must be deleted
+	virtual bool SerializeEvent( IGameEvent *event, CNetMessagePB<CMsgSource1LegacyGameEvent> *ev ) = 0;
+	virtual IGameEvent *UnserializeEvent( const CNetMessagePB<CMsgSource1LegacyGameEvent> &ev ) = 0; // create new KeyValues, must be deleted
 	
 	virtual int LookupEventId( const char *name ) = 0;
 	

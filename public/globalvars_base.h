@@ -44,6 +44,9 @@ public:
 	// zer0k: Command queue related
 	int unknown1;
 	int unknown2;
+	int unknown3;
+	int unknown4;
+	int unknown5;
 
 	FnGlobalVarsWarningFunc m_pfnWarningFunc;
 
@@ -69,16 +72,20 @@ public:
 	float rendertime;
 
 	// zer0k: Command queue + interpolation related 
-	float unknown3;
-	float unknown4;
+	float unknown6;
+	float unknown7;
 
 	bool m_bInSimulation;
 	bool m_bEnableAssertions;
 
 	// Simulation ticks - does not increase when game is paused
 	int tickcount;
-	// Simulation tick interval
-	float interval_per_tick;
+
+	int unknown8;
+	int unknown9;
+	
+	// Non-zero when during movement processing, it's the part after the decimal point of the "when" field in player's subtick moves.
+	float m_flSubtickFraction;
 };
 
 inline CGlobalVarsBase::CGlobalVarsBase()

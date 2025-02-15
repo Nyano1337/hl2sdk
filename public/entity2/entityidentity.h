@@ -9,15 +9,20 @@
 #define MAX_ENTITY_LISTS 64 // 0x3F
 #define MAX_TOTAL_ENTITIES MAX_ENTITIES_IN_LIST * MAX_ENTITY_LISTS // 0x8000
 
-#include "eiface.h"
-#include "entitycomponent.h"
+#include "tier1/utlstring.h"
+#include "tier1/utlsymbollarge.h"
+#include "entity2/entitycomponent.h"
 #include "entityhandle.h"
 
+class CEntityClass;
 class CEntityInstance;
 
 struct ChangeAccessorFieldPathIndex_t
 {
-	int16 m_Value;
+	ChangeAccessorFieldPathIndex_t() { m_Value = -1; }
+	ChangeAccessorFieldPathIndex_t( int32 value ) { m_Value = value; }
+	
+	int32 m_Value;
 };
 
 typedef uint32 SpawnGroupHandle_t;
@@ -60,6 +65,7 @@ enum EntityFlags_t : uint32
 	EF_HAS_BEEN_UNSERIALIZED = 0x1000,
 	EF_IS_SUSPENDED = 0x2000,
 	EF_IS_ANONYMOUS_ALLOCATION = 0x4000,
+	EF_SUSPEND_OUTSIDE_PVS = 0x8000,
 };
 
 // Size: 0x78
@@ -84,11 +90,17 @@ public:
 		return m_EHandle.GetEntryIndex();
 	}
 
+	inline SpawnGroupHandle_t GetSpawnGroup() const
+	{
+		return m_hSpawnGroup;
+	}
+
+	bool NameMatches( const char* pszNameOrWildcard ) const;
+	bool ClassMatches( const char* pszClassOrWildcard ) const;
+
 public:
 	CEntityInstance* m_pInstance; // 0x0
-private:
-	void* m_pClass; // 0x8 - CEntityClass
-public:
+	CEntityClass* m_pClass; // 0x8
 	CEntityHandle m_EHandle; // 0x10
 	int32 m_nameStringableIndex; // 0x14	
 	CUtlSymbolLarge m_name; // 0x18
@@ -104,7 +116,6 @@ public:
 	uint32 m_fDataObjectTypes; // 0x3c	
 	ChangeAccessorFieldPathIndex_t m_PathIndex; // 0x40
 private:
-	uint16 m_Padding; // 0x42
 	void* m_pAttributes; // 0x48 - CUtlObjectAttributeTable<CEntityIdentity, CUtlStringToken>
 	void* m_pRenderAttrs; // 0x50 - CRenderAttributesDoubleBuffered
 public:

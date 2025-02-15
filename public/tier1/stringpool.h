@@ -30,20 +30,21 @@ enum StringPoolCase_t
 class CStringPool
 {
 public:
-	CStringPool( StringPoolCase_t caseSensitivity = StringPoolCaseInsensitive );
-	~CStringPool();
+	DLL_CLASS_IMPORT CStringPool( StringPoolCase_t caseSensitivity = StringPoolCaseInsensitive );
+	DLL_CLASS_IMPORT ~CStringPool();
 
-	unsigned int Count() const;
+	DLL_CLASS_IMPORT unsigned int Count() const;
 
-	const char * Allocate( const char *pszValue );
-	void FreeAll();
+	DLL_CLASS_IMPORT const char * Allocate( const char *pszValue );
+	DLL_CLASS_IMPORT void FreeAll();
 
 	// searches for a string already in the pool
-	const char * Find( const char *pszValue );
+	DLL_CLASS_IMPORT const char * Find( const char *pszValue );
 
 protected:
 	typedef CUtlRBTree<const char *, unsigned short> CStrSet;
 
+	CThreadFastMutex m_Mutex;
 	CStrSet m_Strings;
 };
 
@@ -55,7 +56,7 @@ protected:
 //
 // At some point this should replace CStringPool
 //-----------------------------------------------------------------------------
-class CCountedStringPool
+class CCountedStringPool_CI
 {
 public: // HACK, hash_item_t structure should not be public.
 
@@ -80,23 +81,24 @@ public: // HACK, hash_item_t structure should not be public.
 	StringPoolCase_t 			m_caseSensitivity;
 
 public:
-	CCountedStringPool( StringPoolCase_t caseSensitivity = StringPoolCaseInsensitive );
-	virtual ~CCountedStringPool();
+	DLL_CLASS_IMPORT CCountedStringPool_CI();
+	DLL_CLASS_IMPORT virtual ~CCountedStringPool_CI();
 
-	void			FreeAll();
+	DLL_CLASS_IMPORT void			FreeAll();
 
-	char			*FindString( const char* pIntrinsic ); 
-	char			*ReferenceString( const char* pIntrinsic );
-	void			DereferenceString( const char* pIntrinsic );
+	DLL_CLASS_IMPORT const char		*FindString( const char* pIntrinsic ) const;
+	DLL_CLASS_IMPORT const char		*ReferenceString( const char* pIntrinsic );
+	DLL_CLASS_IMPORT void			DereferenceString( const char* pIntrinsic );
 
 	// These are only reliable if there are less than 64k strings in your string pool
-	unsigned short	FindStringHandle( const char* pIntrinsic ); 
-	unsigned short	ReferenceStringHandle( const char* pIntrinsic );
-	char			*HandleToString( unsigned short handle );
-	void			SpewStrings();
-	unsigned		Hash( const char *pszKey );
+	DLL_CLASS_IMPORT unsigned short	FindStringHandle( const char* pIntrinsic ) const; 
+	DLL_CLASS_IMPORT unsigned short	ReferenceStringHandle( const char* pIntrinsic );
+	DLL_CLASS_IMPORT const char		*HandleToString( unsigned short handle ) const;
+	DLL_CLASS_IMPORT void			SpewStrings() const;
+	DLL_CLASS_IMPORT unsigned int	Hash( const char *pszKey ) const;
 
-	bool			SaveToBuffer( CUtlBuffer &buffer );
-	bool			RestoreFromBuffer( CUtlBuffer &buffer );};
+	DLL_CLASS_IMPORT bool			SaveToBuffer( CUtlBuffer &buffer ) const;
+	DLL_CLASS_IMPORT bool			RestoreFromBuffer( CUtlBuffer &buffer );
+};
 
 #endif // STRINGPOOL_H

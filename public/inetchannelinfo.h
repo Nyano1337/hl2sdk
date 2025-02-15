@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright ï¿½ 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -22,6 +22,14 @@
 #define MAX_FLOWS		2		// in & out
 
 struct SNetChannelLatencyStats;
+
+struct NetChanStat_t
+{
+	float m_flAvg;
+	float m_flMin;
+	float m_flMax;
+	float m_flStdDev;
+};
 
 class INetChannelInfo
 {
@@ -57,29 +65,38 @@ public:
 	virtual bool		IsTimingOut( void ) const = 0;	// true if timing out
 	virtual bool		IsPlayback( void ) const = 0;
 
-	virtual float		GetLatency( int flow ) const = 0;	 // current latency (RTT), more accurate but jittering
-	virtual float		GetAvgLatency( int flow ) const = 0; // average packet latency in seconds
-	virtual float		GetStdDevLatency(int flow) const = 0; // standard deviation of latency
+	virtual float		GetAvgLatency( void ) const = 0;	// average packet latency in seconds
+	virtual float		GetEngineLatency( void ) const = 0;	// current latency (RTT), more accurate but jittering
+	
 	virtual float		GetAvgLoss( int flow ) const = 0;	 // avg packet loss[0..1]
-	virtual float		GetAvgChoke( int flow ) const = 0;	 // avg packet choke[0..1]
+	virtual float		GetAvgChoke(int flow) const = 0;
 	virtual float		GetAvgData( int flow ) const = 0;	 // data flow in bytes/sec
+	
+	virtual float		unk001( int flow ) const = 0;
+	
 	virtual float		GetAvgPackets( int flow ) const = 0; // avg packets/sec
 	virtual int			GetTotalData( int flow ) const = 0;	 // total flow in/out in bytes
 	virtual int			GetTotalPackets( int flow ) const = 0;
 	virtual int			GetSequenceNr( int flow ) const = 0;	// last send seq number
-	virtual bool		IsValidPacket( int flow, int frame_number ) const = 0; // true if packet was not lost/dropped/chocked/flushed
-	virtual float		GetPacketTime( int flow, int frame_number ) const = 0; // time when packet was send
-	virtual int			GetPacketBits( int flow, int frame_number, int group ) const = 0; // group size of this packet
 	virtual float		GetTimeSinceLastReceived( void ) const = 0;	// get time since last recieved packet in seconds
-	virtual	float		GetCommandInterpolationAmount( int flow, int frame_number ) const = 0;
-	virtual void		GetPacketResponseLatency( int flow, int frame_number, int *pnLatencyMsecs, int *pnChoke ) const = 0;
 	virtual void		GetRemoteFramerate( float *pflFrameTime, float *pflFrameTimeStdDeviation, float *pflFrameStartTimeStdDeviation ) const = 0;
 
-	virtual float		GetTimeoutSeconds() const = 0;
+	virtual float		GetTimeoutSeconds( void ) const = 0;
+	virtual float		GetTimeUntilTimeout( void ) const = 0;
+	
+	virtual void		unk101() = 0;
 	
 	virtual void		ResetLatencyStats( int channel ) = 0;
 	virtual SNetChannelLatencyStats *GetLatencyStats( int channel ) const = 0;
 	virtual void		SetLatencyStats( int channel, const SNetChannelLatencyStats &stats ) = 0;
+	
+	virtual void		SetInterpolationAmount( float flInterpolationAmount, float flUpdateRate ) = 0;
+	virtual void		SetNumPredictionErrors( int num ) = 0;
+	virtual void		SetShowNetMessages( bool show ) = 0;
+
+	virtual void		unk201() = 0;
+	virtual void		unk202() = 0;
+	virtual void		unk203() = 0;
 };
 
 #endif // INETCHANNELINFO_H
