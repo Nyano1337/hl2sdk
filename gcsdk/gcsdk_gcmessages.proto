@@ -1,10 +1,16 @@
+import "valveextensions.proto";
 import "steammessages.proto";
+import "steammessages_steamlearn.steamworkssdk.proto";
 
-enum GCClientLauncherType {
-	GCClientLauncherType_DEFAULT = 0;
-	GCClientLauncherType_PERFECTWORLD = 1;
-	GCClientLauncherType_STEAMCHINA = 2;
-	GCClientLauncherType_SOURCE2 = 3;
+enum ESourceEngine {
+	k_ESE_Source1 = 0;
+	k_ESE_Source2 = 1;
+}
+
+enum PartnerAccountType {
+	PARTNER_NONE = 0;
+	PARTNER_PERFECT_WORLD = 1;
+	PARTNER_INVALID = 3;
 }
 
 enum GCConnectionStatus {
@@ -13,6 +19,47 @@ enum GCConnectionStatus {
 	GCConnectionStatus_NO_SESSION = 2;
 	GCConnectionStatus_NO_SESSION_IN_LOGON_QUEUE = 3;
 	GCConnectionStatus_NO_STEAM = 4;
+	GCConnectionStatus_SUSPENDED = 5;
+	GCConnectionStatus_STEAM_GOING_DOWN = 6;
+}
+
+message CExtraMsgBlock {
+	optional uint32 msg_type = 1;
+	optional bytes contents = 2 [(debugprint_visibility) = k_EProtoDebugVisibility_Never];
+	optional uint64 msg_key = 3;
+	optional bool is_compressed = 4;
+}
+
+message CMsgSteamLearnServerInfo {
+	message ProjectInfo {
+		optional uint32 project_id = 1;
+		optional uint32 snapshot_published_version = 2;
+		optional uint32 inference_published_version = 3;
+		optional uint32 snapshot_percentage = 6;
+		optional bool snapshot_enabled = 7;
+	}
+
+	optional .CMsgSteamLearnAccessTokens access_tokens = 4;
+	repeated .CMsgSteamLearnServerInfo.ProjectInfo project_infos = 5;
+}
+
+message CMsgGCAssertJobData {
+	optional string message_type = 1;
+	optional bytes message_data = 2;
+}
+
+message CMsgGCConCommand {
+	optional string command = 1;
+}
+
+message CMsgSDOAssert {
+	message Request {
+		repeated uint64 key = 1;
+		optional string requesting_job = 2;
+	}
+
+	optional int32 sdo_type = 1;
+	repeated .CMsgSDOAssert.Request requests = 2;
 }
 
 message CMsgSOIDOwner {
@@ -25,6 +72,7 @@ message CMsgSOSingleObject {
 	optional bytes object_data = 3;
 	optional fixed64 version = 4;
 	optional .CMsgSOIDOwner owner_soid = 5;
+	optional uint32 service_id = 6;
 }
 
 message CMsgSOMultipleObjects {
@@ -38,7 +86,10 @@ message CMsgSOMultipleObjects {
 
 	repeated .CMsgSOMultipleObjects.SingleObject objects_modified = 2;
 	optional fixed64 version = 3;
+	repeated .CMsgSOMultipleObjects.SingleObject objects_added = 4;
+	repeated .CMsgSOMultipleObjects.SingleObject objects_removed = 5;
 	optional .CMsgSOIDOwner owner_soid = 6;
+	optional uint32 service_id = 7;
 }
 
 message CMsgSOCacheSubscribed {
@@ -50,6 +101,17 @@ message CMsgSOCacheSubscribed {
 	repeated .CMsgSOCacheSubscribed.SubscribedType objects = 2;
 	optional fixed64 version = 3;
 	optional .CMsgSOIDOwner owner_soid = 4;
+	optional uint32 service_id = 5;
+	repeated uint32 service_list = 6;
+	optional fixed64 sync_version = 7;
+}
+
+message CMsgSOCacheSubscribedUpToDate {
+	optional fixed64 version = 1;
+	optional .CMsgSOIDOwner owner_soid = 2;
+	optional uint32 service_id = 3;
+	repeated uint32 service_list = 4;
+	optional fixed64 sync_version = 5;
 }
 
 message CMsgSOCacheUnsubscribed {
@@ -59,6 +121,9 @@ message CMsgSOCacheUnsubscribed {
 message CMsgSOCacheSubscriptionCheck {
 	optional fixed64 version = 2;
 	optional .CMsgSOIDOwner owner_soid = 3;
+	optional uint32 service_id = 4;
+	repeated uint32 service_list = 5;
+	optional fixed64 sync_version = 6;
 }
 
 message CMsgSOCacheSubscriptionRefresh {
@@ -69,55 +134,53 @@ message CMsgSOCacheVersion {
 	optional fixed64 version = 1;
 }
 
-message CMsgAccountDetails {
-	optional bool valid = 1;
-	optional string account_name = 2;
-	optional bool public_profile = 4;
-	optional bool public_inventory = 5;
-	optional bool vac_banned = 6;
-	optional bool cyber_cafe = 7;
-	optional bool school_account = 8;
-	optional bool free_trial_account = 9;
-	optional bool subscribed = 10;
-	optional bool low_violence = 11;
-	optional bool limited = 12;
-	optional bool trusted = 13;
-	optional uint32 package = 14;
-	optional fixed32 time_cached = 15;
-	optional bool account_locked = 16;
-	optional bool community_banned = 17;
-	optional bool trade_banned = 18;
-	optional bool eligible_for_community_market = 19;
-}
-
 message CMsgGCMultiplexMessage {
 	optional uint32 msgtype = 1;
 	optional bytes payload = 2;
 	repeated fixed64 steamids = 3;
-	optional bool replytogc = 4;
 }
 
-message CMsgGCMultiplexMessage_Response {
-	optional uint32 msgtype = 1;
+message CMsgGCToGCSubGCStarting {
+	optional int32 dir_index = 1 [default = -1];
 }
 
 message CGCToGCMsgMasterAck {
-	optional uint32 dir_index = 1;
-	optional uint32 gc_type = 2;
+	message Process {
+		optional int32 dir_index = 1 [default = -1];
+		repeated uint32 type_instances = 2;
+	}
+
+	optional int32 dir_index = 1 [default = -1];
+	optional string machine_name = 3;
+	optional string process_name = 4;
+	repeated .CGCToGCMsgMasterAck.Process directory = 6;
 }
 
 message CGCToGCMsgMasterAck_Response {
 	optional int32 eresult = 1 [default = 2];
 }
 
+message CMsgGCToGCUniverseStartup {
+	optional bool is_initial_startup = 1;
+}
+
+message CMsgGCToGCUniverseStartupResponse {
+	optional int32 eresult = 1;
+}
+
 message CGCToGCMsgMasterStartupComplete {
+	message GCInfo {
+		optional int32 dir_index = 1 [default = -1];
+		optional string machine_name = 2;
+	}
+
+	repeated .CGCToGCMsgMasterStartupComplete.GCInfo gc_info = 1;
 }
 
 message CGCToGCMsgRouted {
 	optional uint32 msg_type = 1;
 	optional fixed64 sender_id = 2;
 	optional bytes net_message = 3;
-	optional uint32 ip = 4;
 }
 
 message CGCToGCMsgRoutedReply {
@@ -125,45 +188,58 @@ message CGCToGCMsgRoutedReply {
 	optional bytes net_message = 2;
 }
 
-message CMsgGCUpdateSessionIP {
-	optional fixed64 steamid = 1;
-	optional fixed32 ip = 2;
+message CMsgGCUpdateSubGCSessionInfo {
+	message CMsgUpdate {
+		optional fixed64 steamid = 1;
+		optional fixed32 ip = 2;
+		optional bool trusted = 3;
+	}
+
+	repeated .CMsgGCUpdateSubGCSessionInfo.CMsgUpdate updates = 1;
 }
 
-message CMsgGCRequestSessionIP {
+message CMsgGCRequestSubGCSessionInfo {
 	optional fixed64 steamid = 1;
 }
 
-message CMsgGCRequestSessionIPResponse {
+message CMsgGCRequestSubGCSessionInfoResponse {
 	optional fixed32 ip = 1;
+	optional bool trusted = 2;
+	optional uint32 port = 3;
+	optional bool success = 4;
 }
 
 message CMsgSOCacheHaveVersion {
 	optional .CMsgSOIDOwner soid = 1;
 	optional fixed64 version = 2;
+	optional uint32 service_id = 3;
+	optional uint32 cached_file_version = 4;
 }
 
 message CMsgClientHello {
 	optional uint32 version = 1;
 	repeated .CMsgSOCacheHaveVersion socache_have_versions = 2;
 	optional uint32 client_session_need = 3;
-	optional uint32 client_launcher = 4;
-	optional uint32 partner_srcid = 5;
-	optional uint32 partner_accountid = 6;
-	optional uint32 partner_accountflags = 7;
-	optional uint32 partner_accountbalance = 8;
-	optional uint32 steam_launcher = 9;
-}
-
-message CMsgServerHello {
-	optional uint32 version = 1;
-	repeated .CMsgSOCacheHaveVersion socache_have_versions = 2;
-	optional uint32 legacy_client_session_need = 3;
-	optional uint32 client_launcher = 4;
-	optional bytes legacy_steamdatagram_routing = 6;
-	optional uint32 required_internal_addr = 7;
+	optional .PartnerAccountType client_launcher = 4 [default = PARTNER_NONE];
+	optional string secret_key = 5;
+	optional uint32 client_language = 6;
+	optional .ESourceEngine engine = 7 [default = k_ESE_Source1];
 	optional bytes steamdatagram_login = 8;
-	optional uint32 socache_control = 9;
+	optional uint32 platform_id = 9;
+	optional bytes game_msg = 10;
+	optional int32 os_type = 11;
+	optional uint32 render_system = 12;
+	optional uint32 render_system_req = 13;
+	optional uint32 screen_width = 14;
+	optional uint32 screen_height = 15;
+	optional uint32 screen_refresh = 16;
+	optional uint32 render_width = 17;
+	optional uint32 render_height = 18;
+	optional uint32 swap_width = 19;
+	optional uint32 swap_height = 20;
+	optional bool is_steam_china = 22;
+	optional bool is_steam_china_client = 24;
+	optional string platform_name = 23;
 }
 
 message CMsgClientWelcome {
@@ -178,12 +254,17 @@ message CMsgClientWelcome {
 	repeated .CMsgSOCacheSubscribed outofdate_subscribed_caches = 3;
 	repeated .CMsgSOCacheSubscriptionCheck uptodate_subscribed_caches = 4;
 	optional .CMsgClientWelcome.Location location = 5;
-	optional bytes game_data2 = 6;
-	optional uint32 rtime32_gc_welcome_timestamp = 7;
-	optional uint32 currency = 8;
-	optional uint32 balance = 9;
-	optional string balance_url = 10;
-	optional string txn_country_code = 11;
+	optional uint32 gc_socache_file_version = 9;
+	optional string txn_country_code = 10;
+	optional bytes game_data2 = 11;
+	optional uint32 rtime32_gc_welcome_timestamp = 12;
+	optional uint32 currency = 13;
+	optional uint32 balance = 14;
+	optional string balance_url = 15;
+	optional bool has_accepted_china_ssa = 16;
+	optional bool is_banned_steam_china = 17;
+	optional .CExtraMsgBlock additional_welcome_msgs = 18;
+	optional .CMsgSteamLearnServerInfo steam_learn_server_info = 20;
 }
 
 message CMsgConnectionStatus {
@@ -195,11 +276,55 @@ message CMsgConnectionStatus {
 	optional int32 estimated_wait_seconds_remaining = 6;
 }
 
+message CMsgGCToGCSOCacheSubscribe {
+	message CMsgHaveVersions {
+		optional uint32 service_id = 1;
+		optional uint64 version = 2;
+	}
+
+	optional fixed64 subscriber = 1;
+	optional fixed64 subscribe_to_id = 2;
+	optional fixed64 sync_version = 3;
+	repeated .CMsgGCToGCSOCacheSubscribe.CMsgHaveVersions have_versions = 4;
+	optional uint32 subscribe_to_type = 5;
+}
+
+message CMsgGCToGCSOCacheUnsubscribe {
+	optional fixed64 subscriber = 1;
+	optional fixed64 unsubscribe_from_id = 2;
+	optional uint32 unsubscribe_from_type = 3;
+}
+
+message CMsgGCClientPing {
+}
+
+message CMsgGCToGCForwardAccountDetails {
+	optional fixed64 steamid = 1;
+	optional .CGCSystemMsg_GetAccountDetails_Response account_details = 2;
+	optional uint32 age_seconds = 3;
+}
+
+message CMsgGCToGCLoadSessionSOCache {
+	optional uint32 account_id = 1;
+	optional .CMsgGCToGCForwardAccountDetails forward_account_details = 2;
+}
+
+message CMsgGCToGCLoadSessionSOCacheResponse {
+}
+
+message CMsgGCToGCUpdateSessionStats {
+	optional uint32 user_sessions = 1;
+	optional uint32 server_sessions = 2;
+	optional bool in_logon_surge = 3;
+}
+
+message CMsgGCToClientRequestDropped {
+}
+
 message CWorkshop_PopulateItemDescriptions_Request {
 	message SingleItemDescription {
 		optional uint32 gameitemid = 1;
 		optional string item_description = 2;
-		optional bool one_per_account = 3;
 	}
 
 	message ItemDescriptionsLanguageBlock {
@@ -249,55 +374,51 @@ message CWorkshop_SetItemPaymentRules_Request {
 }
 
 message CWorkshop_SetItemPaymentRules_Response {
+	repeated string validation_errors = 1;
 }
 
-message CGameServers_AggregationQuery_Request {
-	optional string filter = 1;
-	repeated string group_fields = 3;
+message CCommunity_ClanAnnouncementInfo {
+	optional uint64 gid = 1;
+	optional uint64 clanid = 2;
+	optional uint64 posterid = 3;
+	optional string headline = 4;
+	optional uint32 posttime = 5;
+	optional uint32 updatetime = 6;
+	optional string body = 7;
+	optional int32 commentcount = 8;
+	repeated string tags = 9;
+	optional int32 language = 10;
+	optional bool hidden = 11;
+	optional fixed64 forum_topic_id = 12;
 }
 
-message CGameServers_AggregationQuery_Response {
-	message Group {
-		repeated string group_values = 1;
-		optional uint32 servers_empty = 2;
-		optional uint32 servers_full = 3;
-		optional uint32 servers_total = 4;
-		optional uint32 players_humans = 5;
-		optional uint32 players_bots = 6;
-		optional uint32 player_capacity = 7;
-	}
-
-	repeated .CGameServers_AggregationQuery_Response.Group groups = 1;
+message CCommunity_GetClanAnnouncements_Request {
+	optional uint64 steamid = 1;
+	optional uint32 offset = 2;
+	optional uint32 count = 3;
+	optional uint32 maxchars = 4;
+	optional bool strip_html = 5;
+	repeated string required_tags = 6;
+	optional bool require_no_tags = 7;
+	repeated uint32 language_preference = 8;
+	optional bool hidden_only = 9;
+	optional bool only_gid = 10;
+	optional uint32 rtime_oldest_date = 11;
+	optional bool include_hidden = 12;
+	optional bool include_partner_events = 13;
 }
 
-message CWorkshop_AddSpecialPayment_Request {
+message CCommunity_GetClanAnnouncements_Response {
+	optional uint32 maxchars = 1;
+	optional bool strip_html = 2;
+	repeated .CCommunity_ClanAnnouncementInfo announcements = 3;
+}
+
+message CBroadcast_PostGameDataFrame_Request {
 	optional uint32 appid = 1;
-	optional uint32 gameitemid = 2;
-	optional string date = 3;
-	optional uint64 payment_us_usd = 4;
-	optional uint64 payment_row_usd = 5;
-}
-
-message CWorkshop_AddSpecialPayment_Response {
-}
-
-message CProductInfo_SetRichPresenceLocalization_Request {
-	message Token {
-		optional string token = 1;
-		optional string value = 2;
-	}
-
-	message LanguageSection {
-		optional string language = 1;
-		repeated .CProductInfo_SetRichPresenceLocalization_Request.Token tokens = 2;
-	}
-
-	optional uint32 appid = 1;
-	repeated .CProductInfo_SetRichPresenceLocalization_Request.LanguageSection languages = 2;
-	optional uint64 steamid = 3;
-}
-
-message CProductInfo_SetRichPresenceLocalization_Response {
+	optional fixed64 steamid = 2;
+	optional fixed64 broadcast_id = 3;
+	optional bytes frame_data = 4;
 }
 
 message CMsgSerializedSOCache {
@@ -322,4 +443,53 @@ message CMsgSerializedSOCache {
 	optional uint32 file_version = 1;
 	repeated .CMsgSerializedSOCache.Cache caches = 2;
 	optional uint32 gc_socache_file_version = 3;
+}
+
+message CMsgGCToClientPollConvarRequest {
+	optional string convar_name = 1;
+	optional uint32 poll_id = 2;
+}
+
+message CMsgGCToClientPollConvarResponse {
+	optional uint32 poll_id = 1;
+	optional string convar_value = 2;
+}
+
+message CGCMsgCompressedMsgToClient {
+	optional uint32 msg_id = 1;
+	optional bytes compressed_msg = 2;
+}
+
+message CMsgGCToGCMasterBroadcastMessage {
+	optional uint32 users_per_second = 1;
+	optional bool send_to_users = 2;
+	optional bool send_to_servers = 3;
+	optional uint32 msg_id = 4;
+	optional bytes msg_data = 5;
+}
+
+message CMsgGCToGCMasterSubscribeToCache {
+	optional uint32 soid_type = 1;
+	optional fixed64 soid_id = 2;
+	repeated uint32 account_ids = 3;
+	repeated fixed64 steam_ids = 4;
+}
+
+message CMsgGCToGCMasterSubscribeToCacheResponse {
+}
+
+message CMsgGCToGCMasterSubscribeToCacheAsync {
+	optional .CMsgGCToGCMasterSubscribeToCache subscribe_msg = 1;
+}
+
+message CMsgGCToGCMasterUnsubscribeFromCache {
+	optional uint32 soid_type = 1;
+	optional fixed64 soid_id = 2;
+	repeated uint32 account_ids = 3;
+	repeated fixed64 steam_ids = 4;
+}
+
+message CMsgGCToGCMasterDestroyCache {
+	optional uint32 soid_type = 1;
+	optional fixed64 soid_id = 2;
 }
