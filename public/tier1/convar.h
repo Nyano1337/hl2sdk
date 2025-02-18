@@ -607,7 +607,16 @@ private:
 	void Destroy( );
 };
 
-using FnGenericChangeCallback_t = void(*)(ConVarRefAbstract* ref, CSplitScreenSlot nSlot, const CVValue_t* pNewValue, const CVValue_t* pOldValue);
+template <typename T>
+class CConVar;
+
+template <typename T>
+using FnTypedChangeCallback_t = void (*)(CConVar<T> *cvar, CSplitScreenSlot nSlot, const T *pNewValue, const T *pOldValue);
+template <typename T>
+using FnTypedChangeCallbackProvider_t = void(*)(CConVar<T> *cvar, CSplitScreenSlot slot, const T *pNewValue, const T *pOldValue, FnTypedChangeCallback_t<T> cb);
+
+using FnGenericChangeCallback_t = void(*)(ConVarRefAbstract *ref, CSplitScreenSlot nSlot, const CVValue_t *pNewValue, const CVValue_t *pOldValue);
+using FnGenericChangeCallbackProvider_t = void(*)(ConVarRefAbstract *ref, CSplitScreenSlot nSlot, const CVValue_t *pNewValue, const CVValue_t *pOldValue, FnGenericChangeCallback_t cb);
 
 struct ConVarValueInfo_t
 {
@@ -619,29 +628,43 @@ struct ConVarValueInfo_t
 		m_defaultValue {},
 		m_minValue {},
 		m_maxValue {},
-		m_fnCallBack(),
+		m_fnProviderCallBack( nullptr ),
+		m_fnCallBack( nullptr ),
 		m_eVarType( type )
 	{}
 
-	template<typename T>
+	template <typename T>
 	void SetDefaultValue( const T &value )
 	{
 		m_bHasDefault = true;
 		*reinterpret_cast<T *>(m_defaultValue) = value;
 	}
 
-	template<typename T>
+	template <typename T>
 	void SetMinValue( const T &min )
 	{
 		m_bHasMin = true;
 		*reinterpret_cast<T *>(m_minValue) = min;
 	}
 
-	template<typename T>
+	template <typename T>
 	void SetMaxValue( const T &max )
 	{
 		m_bHasMax = true;
 		*reinterpret_cast<T *>(m_maxValue) = max;
+	}
+
+	template <typename T>
+	void SetCallback( FnTypedChangeCallback_t<T> cb )
+	{
+		if(cb)
+		{
+			m_fnProviderCallBack = []( ConVarRefAbstract *ref, CSplitScreenSlot nSlot, const CVValue_t *pNewValue, const CVValue_t *pOldValue, FnGenericChangeCallback_t cb ) {
+				reinterpret_cast<FnTypedChangeCallback_t<T>>(cb)(reinterpret_cast<CConVar<T> *>(ref), nSlot, reinterpret_cast<const T *>(pNewValue), reinterpret_cast<const T *>(pOldValue));
+			};
+
+			m_fnCallBack = reinterpret_cast<FnGenericChangeCallback_t>(cb);
+		}
 	}
 
 	int32 m_Version;
@@ -657,7 +680,9 @@ private:
 	uint8 m_maxValue[sizeof( CVValue_t )];
 
 public:
+	FnGenericChangeCallbackProvider_t m_fnProviderCallBack;
 	FnGenericChangeCallback_t m_fnCallBack;
+
 	EConVarType m_eVarType;
 };
 
@@ -1211,9 +1236,7 @@ class CConVar : public CConVarRef<T>
 public:
 	typedef CConVarRef<T> BaseClass;
 
-	using FnChangeCallback_t = void(*)(CConVar<T> *ref, CSplitScreenSlot nSlot, const T *pNewValue, const T *pOldValue);
-
-	CConVar( const char *name, uint64 flags, const char *help_string, const T &default_value, FnChangeCallback_t cb = nullptr )
+	CConVar( const char *name, uint64 flags, const char *help_string, const T &default_value, FnTypedChangeCallback_t<T> cb = nullptr )
 		: BaseClass()
 	{
 		Assert( name );
@@ -1222,12 +1245,12 @@ public:
 
 		ConVarValueInfo_t value_info( TranslateConVarType<T>() );
 		value_info.SetDefaultValue( default_value );
-		value_info.m_fnCallBack = reinterpret_cast<FnGenericChangeCallback_t>(cb);
+		value_info.SetCallback( cb );
 
 		BaseClass::Register( name, flags, help_string, value_info );
 	}
 
-	CConVar( const char *name, uint64 flags, const char *help_string, const T &default_value, bool min, const T &minValue, bool max, const T &maxValue, FnChangeCallback_t cb = nullptr )
+	CConVar( const char *name, uint64 flags, const char *help_string, const T &default_value, bool min, const T &minValue, bool max, const T &maxValue, FnTypedChangeCallback_t<T> cb = nullptr )
 		: BaseClass()
 	{
 		Assert( name );
@@ -1243,7 +1266,7 @@ public:
 		if(max)
 			value_info.SetMaxValue( maxValue );
 
-		value_info.m_fnCallBack = reinterpret_cast<FnGenericChangeCallback_t>(cb);
+		value_info.SetCallback( cb );
 
 		BaseClass::Register( name, flags, help_string, value_info );
 	}

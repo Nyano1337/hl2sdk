@@ -185,6 +185,7 @@ public:
 
 	struct CConVarChangeCallbackNode_t
 	{
+		FnGenericChangeCallback_t m_pProviderCallBack;
 		FnGenericChangeCallback_t m_pCallback;
 
 		// Register index of cvar which change cb comes from
@@ -215,7 +216,7 @@ public:
 
 	CUtlLinkedList<ConVarData *> m_ConVarList;
 	CUtlHashtable<CUtlStringToken, uint16> m_ConVarHashes;
-	CUtlLinkedList<CConVarChangeCallbackNode_t> m_ConVarChangeCBList;
+	CUtlLinkedList<CConVarChangeCallbackNode_t, unsigned short, true> m_ConVarChangeCBList;
 	int m_ConVarCount;
 
 	CUtlVector<ICVarListenerCallbacks *> m_CvarCreationListeners;
