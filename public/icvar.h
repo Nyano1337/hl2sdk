@@ -229,7 +229,7 @@ public:
 
 	CUtlLinkedList<ConVarData *> m_ConVarList;
 	CUtlHashtable<CUtlStringToken, uint16> m_ConVarHashes;
-	CUtlLinkedList<CConVarChangeCallbackNode_t> m_ConVarChangeCBList;
+	CUtlLinkedList<CConVarChangeCallbackNode_t, unsigned short, true> m_ConVarChangeCBList;
 	int m_ConVarCount;
 
 	CUtlVector<ICVarListenerCallbacks *> m_CvarCreationListeners;
