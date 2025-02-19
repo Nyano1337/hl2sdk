@@ -1,4 +1,4 @@
-//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -20,7 +20,7 @@
 
 PLATFORM_INTERFACE uint64 g_ClockSpeed;
 #if defined( _X360 ) && defined( _CERT )
-PLATFORM_INTERFACE uint32_t g_dwFakeFastCounter;
+PLATFORM_INTERFACE unsigned long g_dwFakeFastCounter;
 #endif
 
 PLATFORM_INTERFACE double g_ClockSpeedMicrosecondsMultiplier;
@@ -45,15 +45,15 @@ public:
 
 	// Convert to other time representations. These functions are slow, so it's preferable to call them
 	// during display rather than inside a timing block.
-	uint32_t	GetCycles()  const;
+	unsigned long	GetCycles()  const;
 	uint64			GetLongCycles() const;
 
-	uint32_t	GetMicroseconds() const;
+	unsigned long	GetMicroseconds() const;
 	uint64			GetUlMicroseconds() const;
 	double			GetMicrosecondsF() const; 	
-	void			SetMicroseconds( uint32_t nMicroseconds );
+	void			SetMicroseconds( unsigned long nMicroseconds );
 
-	uint32_t	GetMilliseconds() const;
+	unsigned long	GetMilliseconds() const;
 	double			GetMillisecondsF() const;
 
 	double			GetSeconds() const;
@@ -305,9 +305,9 @@ inline bool CCycleCount::IsLessThan(CCycleCount const &other) const
 }
 
 
-inline uint32_t CCycleCount::GetCycles() const
+inline unsigned long CCycleCount::GetCycles() const
 {
-	return (uint32_t)m_Int64;
+	return (unsigned long)m_Int64;
 }
 
 inline uint64 CCycleCount::GetLongCycles() const
@@ -315,9 +315,9 @@ inline uint64 CCycleCount::GetLongCycles() const
 	return m_Int64;
 }
 
-inline uint32_t CCycleCount::GetMicroseconds() const
+inline unsigned long CCycleCount::GetMicroseconds() const
 {
-	return (uint32_t)((m_Int64 * 1000000) / g_ClockSpeed);
+	return (unsigned long)((m_Int64 * 1000000) / g_ClockSpeed);
 }
 
 inline uint64 CCycleCount::GetUlMicroseconds() const
@@ -332,15 +332,15 @@ inline double CCycleCount::GetMicrosecondsF() const
 }
 
 
-inline void	CCycleCount::SetMicroseconds( uint32_t nMicroseconds )
+inline void	CCycleCount::SetMicroseconds( unsigned long nMicroseconds )
 {
 	m_Int64 = ((uint64)nMicroseconds * g_ClockSpeed) / 1000000;
 }
 
 
-inline uint32_t CCycleCount::GetMilliseconds() const
+inline unsigned long CCycleCount::GetMilliseconds() const
 {
-	return (uint32_t)((m_Int64 * 1000) / g_ClockSpeed);
+	return (unsigned long)((m_Int64 * 1000) / g_ClockSpeed);
 }
 
 
@@ -494,7 +494,7 @@ inline CAverageTimeMarker::~CAverageTimeMarker()
 class CLimitTimer
 {
 public:
-	CLimitTimer() {}
+	CLimitTimer() = default;
 	CLimitTimer( uint64 cMicroSecDuration ) { SetLimit( cMicroSecDuration ); }
 	void SetLimit( uint64 m_cMicroSecDuration );
 	bool BLimitReached() const;

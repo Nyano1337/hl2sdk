@@ -1,4 +1,4 @@
-//===== Copyright � 1996-2005, Valve Corporation, All rights reserved. ======//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -29,9 +29,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#ifdef _MSC_VER
 #pragma warning( disable : 4127 )
-#endif
 
 // Let scene linger for 1/4 second so blends can finish
 #define SCENE_LINGER_TIME 0.25f
@@ -128,7 +126,7 @@ CChoreoScene& CChoreoScene::operator=( const CChoreoScene& src )
 
 	// Delete existing
 	int i;
-	for ( i = 0; i < m_Actors.Count(); i++ )
+	for ( i = 0; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		Assert( a );
@@ -137,7 +135,7 @@ CChoreoScene& CChoreoScene::operator=( const CChoreoScene& src )
 
 	m_Actors.RemoveAll();
 
-	for ( i = 0; i < m_Events.Count(); i++ )
+	for ( i = 0; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		Assert( e );
@@ -146,7 +144,7 @@ CChoreoScene& CChoreoScene::operator=( const CChoreoScene& src )
 
 	m_Events.RemoveAll();
 
-	for ( i = 0 ; i < m_Channels.Count(); i++ )
+	for ( i = 0 ; i < m_Channels.Size(); i++ )
 	{
 		CChoreoChannel *c = m_Channels[ i ];
 		Assert( c );
@@ -158,6 +156,7 @@ CChoreoScene& CChoreoScene::operator=( const CChoreoScene& src )
 	m_pTokenizer = src.m_pTokenizer;
 	
 	m_flCurrentTime = src.m_flCurrentTime;
+	m_flStartLoopTime = src.m_flStartLoopTime;
 	m_flStartTime = src.m_flStartTime;
 	m_flEndTime	= src.m_flEndTime;
 	m_flSoundSystemLatency = src.m_flSoundSystemLatency;
@@ -172,7 +171,7 @@ CChoreoScene& CChoreoScene::operator=( const CChoreoScene& src )
 	// Now copy the object tree
 	// First copy the global events
 
-	for ( i = 0; i < src.m_Events.Count(); i++ )
+	for ( i = 0; i < src.m_Events.Size(); i++ )
 	{
 		CChoreoEvent *event = src.m_Events[ i ];
 		if ( event->GetActor() == NULL )
@@ -186,7 +185,7 @@ CChoreoScene& CChoreoScene::operator=( const CChoreoScene& src )
 	}
 
 	// Finally, push actors, channels, events onto global stacks
-	for ( i = 0; i < src.m_Actors.Count(); i++ )
+	for ( i = 0; i < src.m_Actors.Size(); i++ )
 	{
 		CChoreoActor *actor = src.m_Actors[ i ];
 		CChoreoActor *newActor = AllocActor();
@@ -236,6 +235,7 @@ void CChoreoScene::Init( IChoreoEventCallback *callback )
 	m_szMapname[ 0 ] = 0;
 
 	m_flCurrentTime = 0.0f;
+	m_flStartLoopTime = -1.f;
 	m_flStartTime = 0.0f;
 	m_flEndTime	= 0.0f;
 	m_flSoundSystemLatency = 0.0f;
@@ -264,7 +264,7 @@ void CChoreoScene::Init( IChoreoEventCallback *callback )
 CChoreoScene::~CChoreoScene( void )
 {
 	int i;
-	for ( i = 0; i < m_Actors.Count(); i++ )
+	for ( i = 0; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		Assert( a );
@@ -273,7 +273,7 @@ CChoreoScene::~CChoreoScene( void )
 
 	m_Actors.RemoveAll();
 
-	for ( i = 0; i < m_Events.Count(); i++ )
+	for ( i = 0; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		Assert( e );
@@ -282,7 +282,7 @@ CChoreoScene::~CChoreoScene( void )
 
 	m_Events.RemoveAll();
 
-	for ( i = 0 ; i < m_Channels.Count(); i++ )
+	for ( i = 0 ; i < m_Channels.Size(); i++ )
 	{
 		CChoreoChannel *c = m_Channels[ i ];
 		Assert( c );
@@ -390,7 +390,7 @@ void CChoreoScene::Print( void )
 	// Look for events that don't have actor/channel set
 	int i;
 
-	for ( i = 0 ; i < m_Events.Count(); i++ )
+	for ( i = 0 ; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetActor() )
@@ -399,7 +399,7 @@ void CChoreoScene::Print( void )
 		PrintEvent( 0, e );
 	}
 
-	for ( i = 0 ; i < m_Actors.Count(); i++ )
+	for ( i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -478,7 +478,7 @@ CChoreoActor *CChoreoScene::AllocActor( void )
 //-----------------------------------------------------------------------------
 CChoreoActor *CChoreoScene::FindActor( const char *name )
 {
-	for ( int i = 0; i < m_Actors.Count(); i++ )
+	for ( int i = 0; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -497,7 +497,7 @@ CChoreoActor *CChoreoScene::FindActor( const char *name )
 //-----------------------------------------------------------------------------
 int CChoreoScene::GetNumEvents( void )
 {
-	return m_Events.Count();
+	return m_Events.Size();
 }
 
 //-----------------------------------------------------------------------------
@@ -507,7 +507,7 @@ int CChoreoScene::GetNumEvents( void )
 //-----------------------------------------------------------------------------
 CChoreoEvent *CChoreoScene::GetEvent( int event )
 {
-	if ( event < 0 || event >= m_Events.Count() )
+	if ( event < 0 || event >= m_Events.Size() )
 		return NULL;
 
 	return m_Events[ event ];
@@ -519,7 +519,7 @@ CChoreoEvent *CChoreoScene::GetEvent( int event )
 //-----------------------------------------------------------------------------
 int CChoreoScene::GetNumActors( void )
 {
-	return m_Actors.Count();
+	return m_Actors.Size();
 }
 
 //-----------------------------------------------------------------------------
@@ -540,7 +540,7 @@ CChoreoActor *CChoreoScene::GetActor( int actor )
 //-----------------------------------------------------------------------------
 int CChoreoScene::GetNumChannels( void )
 {
-	return m_Channels.Count();
+	return m_Channels.Size();
 }
 
 //-----------------------------------------------------------------------------
@@ -619,9 +619,9 @@ void CCurveData::Parse( ISceneTokenProcessor *tokenizer, ICurveDataAccessor *dat
 			s->SetCurveType( curveType );
 		}
 
-		if ( samples.Count() >= 1 )
+		if ( samples.Size() >= 1 )
 		{
-			for ( int i = 0; i < samples.Count(); i++ )
+			for ( int i = 0; i < samples.Size(); i++ )
 			{
 				CExpressionSample sample = samples[ i ];
 
@@ -840,7 +840,7 @@ void CChoreoScene::ParseFlexAnimations( ISceneTokenProcessor *tokenizer, CChoreo
 			}
 		}
 		
-		if ( active || samples[ 0 ].Count() >= 1 )
+		if ( active || samples[ 0 ].Size() >= 1 )
 		{
 			// Add it in
 			CFlexAnimationTrack *track = e->AddTrack( flexcontroller );
@@ -853,7 +853,7 @@ void CChoreoScene::ParseFlexAnimations( ISceneTokenProcessor *tokenizer, CChoreo
 			
 			for ( int t = 0; t < ( combo ? 2 : 1 ); t++ )
 			{
-				for ( int i = 0; i < samples[ t ].Count(); i++ )
+				for ( int i = 0; i < samples[ t ].Size(); i++ )
 				{
 					CExpressionSample *sample = &samples[ t ][ i ];
 					
@@ -1527,7 +1527,7 @@ void CChoreoScene::InternalDetermineEventTypes()
 {
 	m_bitvecHasEventOfType.ClearAll();
 
-	for ( int i = 0 ; i < m_Actors.Count(); i++ )
+	for ( int i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -1619,7 +1619,7 @@ void CChoreoScene::MarkForSaveAll( bool mark )
 	int i;
 
 	// Mark global events
-	for ( i = 0 ; i < m_Events.Count(); i++ )
+	for ( i = 0 ; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetActor() )
@@ -1629,7 +1629,7 @@ void CChoreoScene::MarkForSaveAll( bool mark )
 	}
 
 	// Recursively mark everything else
-	for ( i = 0 ; i < m_Actors.Count(); i++ )
+	for ( i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -1652,7 +1652,7 @@ bool CChoreoScene::ExportMarkedToFile( const char *filename )
 
 	// Look for events that don't have actor/channel set
 	int i;
-	for ( i = 0 ; i < m_Events.Count(); i++ )
+	for ( i = 0 ; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetActor() )
@@ -1661,7 +1661,7 @@ bool CChoreoScene::ExportMarkedToFile( const char *filename )
 		FileSaveEvent( buf, 0, e );
 	}
 
-	for ( i = 0 ; i < m_Actors.Count(); i++ )
+	for ( i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -1695,7 +1695,7 @@ bool CChoreoScene::SaveToFile( const char *filename )
 
 	// Look for events that don't have actor/channel set
 	int i;
-	for ( i = 0 ; i < m_Events.Count(); i++ )
+	for ( i = 0 ; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetActor() )
@@ -1704,7 +1704,7 @@ bool CChoreoScene::SaveToFile( const char *filename )
 		FileSaveEvent( buf, 0, e );
 	}
 
-	for ( i = 0 ; i < m_Actors.Count(); i++ )
+	for ( i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -2219,7 +2219,7 @@ float CChoreoScene::FindAdjustedStartTime( void )
 
 	CChoreoEvent *e;
 
-	for ( int i = 0; i < m_Events.Count(); i++ )
+	for ( int i = 0; i < m_Events.Size(); i++ )
 	{
 		e = m_Events[ i ];
 
@@ -2251,7 +2251,7 @@ float CChoreoScene::FindAdjustedEndTime( void )
 
 	CChoreoEvent *e;
 
-	for ( int i = 0; i < m_Events.Count(); i++ )
+	for ( int i = 0; i < m_Events.Size(); i++ )
 	{
 		e = m_Events[ i ];
 
@@ -2290,7 +2290,7 @@ void CChoreoScene::ResetSimulation( bool forward /*= true*/, float starttime /*=
 	m_PauseEvents.RemoveAll();
 
 	// Put all items into the pending queue
-	for ( int i = 0; i < m_Events.Count(); i++ )
+	for ( int i = 0; i < m_Events.Size(); i++ )
 	{
 		e = m_Events[ i ];
 		e->ResetProcessing();
@@ -2314,10 +2314,12 @@ void CChoreoScene::ResetSimulation( bool forward /*= true*/, float starttime /*=
 
 	m_flCurrentTime = forward ? m_flEarliestTime : m_flLatestTime;
 
+	m_flStartLoopTime = -1.f;
+
 	// choreoprintf( 0, "Start time %f\n", m_flCurrentTime );
 
 	m_flLastActiveTime = 0.0f;
-	m_nActiveEvents = m_Events.Count();
+	m_nActiveEvents = m_Events.Size();
 
 	m_flStartTime = starttime;
 	m_flEndTime = endtime;
@@ -2332,7 +2334,7 @@ bool CChoreoScene::CheckEventCompletion( void )
 
 	bool bAllCompleted = true;
 	// check all items in the active pending queue
-	for ( int i = 0; i < m_ActiveResumeConditions.Count(); i++ )
+	for ( int i = 0; i < m_ActiveResumeConditions.Size(); i++ )
 	{
 		e = m_ActiveResumeConditions[ i ];
 
@@ -2378,7 +2380,7 @@ CChoreoEvent *CChoreoScene::FindPauseBetweenTimes( float starttime, float endtim
 	CChoreoEvent *e;
 
 	// Iterate through all events in the scene
-	for ( int i = 0; i < m_PauseEvents.Count(); i++ )
+	for ( int i = 0; i < m_PauseEvents.Size(); i++ )
 	{
 		e = m_PauseEvents[ i ];
 		if ( !e )
@@ -2475,6 +2477,15 @@ int CChoreoScene::EventThink( CChoreoEvent *e, float frame_start_time, float fra
 				}
 			}
 			*/
+
+			if ( !suppressed )
+			{
+				// if this SPEAK event starts before the beginning of the current loop, don't play the SPEAK event again in the loop
+				if ( m_flStartLoopTime >= 0.f && starttime < m_flStartLoopTime )
+				{
+					return iret;
+				}
+			}
 		}
 		break;
 	case CChoreoEvent::SUBSCENE:
@@ -2629,16 +2640,14 @@ void CChoreoScene::AddPauseEventDependency( CChoreoEvent *pauseEvent, CChoreoEve
 
 //-----------------------------------------------------------------------------
 // Purpose: 
-// Input  : dt - 
+// Input  : curtime - 
 //-----------------------------------------------------------------------------
 void CChoreoScene::Think( float curtime )
 {
 	CChoreoEvent *e;
 
 	float oldt = m_flCurrentTime;
-	float dt = curtime - oldt;
-
-	bool playing_forward = ( dt >= 0.0f ) ? true : false;
+	float dt;
 
 	m_nActiveEvents = 0;
 
@@ -2646,9 +2655,34 @@ void CChoreoScene::Think( float curtime )
 
 	CUtlRBTree< ActiveList, int > pending(0,0,EventLess);
 
+	// Handle loop events first:
+	//float flLoopPoint = LoopThink( curtime );
+	LoopThink( curtime );
+	if ( m_flCurrentTime != oldt )
+	{
+		// We hit a loop, we need to adjust the times.
+		//curtime = m_flCurrentTime + ( oldt - flLoopPoint ); // if we overshot, skip by how much we overshot
+		curtime = m_flCurrentTime;
+		Assert( curtime > 0.0f );
+	}
+
+	dt = curtime - oldt;
+	oldt = m_flCurrentTime;
+
+	bool playing_forward = ( dt >= 0.0f ) ? true : false;
+	//if ( !playing_forward )
+	//{
+	//	Msg( "-----dt was negative. %f   oldt: %f   t: %f\n", dt, oldt, curtime );
+	//}
+	//else
+	//{
+	//	Msg( "+++++dt was positive. %f   oldt: %f   t: %f\n", dt, oldt, curtime );
+	//}
+
+
 	// Iterate through all events in the scene
 	int i;
-	for ( i = 0; i < m_Events.Count(); i++ )
+	for ( i = 0; i < m_Events.Size(); i++ )
 	{
 		e = m_Events[ i ];
 		if ( !e )
@@ -2659,7 +2693,6 @@ void CChoreoScene::Think( float curtime )
 
 		if ( disposition != PROCESSING_TYPE_IGNORE )
 		{
-
 			ActiveList entry;
 
 			entry.e		= e;
@@ -2670,8 +2703,6 @@ void CChoreoScene::Think( float curtime )
 	}
 
 	// Events are sorted start time and then by channel and actor slot or by name if those aren't equal
-	bool dump = false;
-
 	i = pending.FirstInorder();
 	while ( i != pending.InvalidIndex() )
 	{
@@ -2679,59 +2710,9 @@ void CChoreoScene::Think( float curtime )
 
 		Assert( entry->e );
 
-		if ( dump )
-		{
-			Msg( "%f == %s starting at %f (actor %p channel %p)\n",
-				m_flCurrentTime, entry->e->GetName(), entry->e->GetStartTime(),
-				entry->e->GetActor(), entry->e->GetChannel() );
-		}
-
-		switch ( entry->pt )
-		{
-		default:
-		case PROCESSING_TYPE_IGNORE:
-			{
-				Assert( 0 );
-			}
-			break;
-		case PROCESSING_TYPE_START:
-		case PROCESSING_TYPE_START_RESUMECONDITION:
-			{
-				entry->e->StartProcessing( m_pIChoreoEventCallback, this, m_flCurrentTime );
-				
-				if ( entry->pt == PROCESSING_TYPE_START_RESUMECONDITION )
-				{
-					Assert( entry->e->IsResumeCondition() );
-					m_ActiveResumeConditions.AddToTail( entry->e );
-				}
-
-				// This event can "pause" the scene, so we need to remember who "paused" the scene so that
-				//  when we resume we can resume any suppressed events dependent on this pauser...
-				if ( entry->e->GetType() == CChoreoEvent::SECTION )
-				{
-					// So this event should be in the pauseevents list, otherwise this'll be -1
-					m_nLastPauseEvent = m_PauseEvents.Find( entry->e );
-				}
-			}
-			break;
-		case PROCESSING_TYPE_CONTINUE:
-			{
-				entry->e->ContinueProcessing( m_pIChoreoEventCallback, this, m_flCurrentTime );
-			}
-			break;
-		case PROCESSING_TYPE_STOP:
-			{
-				entry->e->StopProcessing( m_pIChoreoEventCallback, this, m_flCurrentTime );
-			}
-			break;
-		}
+		ProcessActiveListEntry( entry );
 
 		i = pending.NextInorder( i );
-	}
-
-	if ( dump )
-	{
-		Msg( "\n" );
 	}
 
 	// If a Process call slams this time, don't override it!!!
@@ -2744,6 +2725,102 @@ void CChoreoScene::Think( float curtime )
 	if ( m_nActiveEvents )
 	{
 		m_flLastActiveTime = m_flCurrentTime;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Loop points are handled prior to other events
+// Input  : curtime - 
+//-----------------------------------------------------------------------------
+float CChoreoScene::LoopThink( float curtime )
+{
+	float oldt = m_flCurrentTime;
+	float dt = curtime - oldt;
+
+	bool playing_forward = ( dt >= 0.0f ) ? true : false;
+
+	// Iterate through all events in the scene
+	CChoreoEvent *e;
+	int i;
+	for ( i = 0; i < m_Events.Size(); i++ )
+	{
+		e = m_Events[ i ];
+		if ( !e || e->GetType() != CChoreoEvent::LOOP )
+			continue;
+
+		PROCESSING_TYPE disposition;
+		m_nActiveEvents += EventThink( e, m_flCurrentTime, curtime, playing_forward, disposition );
+
+		if ( disposition != PROCESSING_TYPE_IGNORE )
+		{
+			ActiveList entry;
+
+			entry.e		= e;
+			entry.pt	= disposition;
+
+			//float ret = (float)atof( e->GetParameters() );
+			float ret = e->GetStartTime();
+			ProcessActiveListEntry( &entry );
+
+			return ret;
+		}
+	}
+
+	return 0.0f;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : entry - 
+//-----------------------------------------------------------------------------
+void CChoreoScene::ProcessActiveListEntry( ActiveList *entry )
+{
+	const bool dump = false;
+	if ( dump )
+	{
+		Msg( "%f == %s starting at %f (actor %p channel %p)\n",
+			m_flCurrentTime, entry->e->GetName(), entry->e->GetStartTime(),
+			entry->e->GetActor(), entry->e->GetChannel() );
+	}
+
+	switch ( entry->pt )
+	{
+	default:
+	case PROCESSING_TYPE_IGNORE:
+		{
+			Assert( 0 );
+		}
+		break;
+	case PROCESSING_TYPE_START:
+	case PROCESSING_TYPE_START_RESUMECONDITION:
+		{
+			entry->e->StartProcessing( m_pIChoreoEventCallback, this, m_flCurrentTime );
+
+			if ( entry->pt == PROCESSING_TYPE_START_RESUMECONDITION )
+			{
+				Assert( entry->e->IsResumeCondition() );
+				m_ActiveResumeConditions.AddToTail( entry->e );
+			}
+
+			// This event can "pause" the scene, so we need to remember who "paused" the scene so that
+			//  when we resume we can resume any suppressed events dependent on this pauser...
+			if ( entry->e->GetType() == CChoreoEvent::SECTION )
+			{
+				// So this event should be in the pauseevents list, otherwise this'll be -1
+				m_nLastPauseEvent = m_PauseEvents.Find( entry->e );
+			}
+		}
+		break;
+	case PROCESSING_TYPE_CONTINUE:
+		{
+			entry->e->ContinueProcessing( m_pIChoreoEventCallback, this, m_flCurrentTime );
+		}
+		break;
+	case PROCESSING_TYPE_STOP:
+		{
+			entry->e->StopProcessing( m_pIChoreoEventCallback, this, m_flCurrentTime );
+		}
+		break;
 	}
 }
 
@@ -2772,6 +2849,8 @@ void CChoreoScene::SetTime( float t )
 void CChoreoScene::LoopToTime( float t )
 {
 	m_flCurrentTime = t;
+
+	m_flStartLoopTime = t;
 }
 
 //-----------------------------------------------------------------------------
@@ -2803,7 +2882,7 @@ void CChoreoScene::RemoveActor( CChoreoActor *actor )
 //-----------------------------------------------------------------------------
 int CChoreoScene::FindActorIndex( CChoreoActor *actor )
 {
-	for ( int i = 0; i < m_Actors.Count(); i++ )
+	for ( int i = 0; i < m_Actors.Size(); i++ )
 	{
 		if ( actor == m_Actors[ i ] )
 		{
@@ -2882,7 +2961,7 @@ void CChoreoScene::DeleteReferencedObjects( CChoreoEvent *event )
 //-----------------------------------------------------------------------------
 void CChoreoScene::DestroyActor( CChoreoActor *actor )
 {
-	int size = m_Actors.Count();
+	int size = m_Actors.Size();
 	for ( int i = size - 1; i >= 0; i-- )
 	{
 		CChoreoActor *a = m_Actors[ i ];
@@ -2901,7 +2980,7 @@ void CChoreoScene::DestroyActor( CChoreoActor *actor )
 //-----------------------------------------------------------------------------
 void CChoreoScene::DestroyChannel( CChoreoChannel *channel )
 {
-	int size = m_Channels.Count();
+	int size = m_Channels.Size();
 	for ( int i = size - 1; i >= 0; i-- )
 	{
 		CChoreoChannel *c = m_Channels[ i ];
@@ -2920,7 +2999,7 @@ void CChoreoScene::DestroyChannel( CChoreoChannel *channel )
 //-----------------------------------------------------------------------------
 void CChoreoScene::DestroyEvent( CChoreoEvent *event )
 {
-	int size = m_Events.Count();
+	int size = m_Events.Size();
 	for ( int i = size - 1; i >= 0; i-- )
 	{
 		CChoreoEvent *e = m_Events[ i ];
@@ -2998,7 +3077,7 @@ void CChoreoScene::GetSceneTimes( float& start, float& end )
 //-----------------------------------------------------------------------------
 void CChoreoScene::ReconcileTags( void )
 {
-	for ( int i = 0 ; i < m_Actors.Count(); i++ )
+	for ( int i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -3055,7 +3134,7 @@ void CChoreoScene::ReconcileTags( void )
 //-----------------------------------------------------------------------------
 CChoreoEvent *CChoreoScene::FindTargetingEvent( const char *wavname, const char *name )
 {
-	for ( int i = 0 ; i < m_Actors.Count(); i++ )
+	for ( int i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -3097,7 +3176,7 @@ CChoreoEvent *CChoreoScene::FindTargetingEvent( const char *wavname, const char 
 //-----------------------------------------------------------------------------
 CEventRelativeTag *CChoreoScene::FindTagByName( const char *wavname, const char *name )
 {
-	for ( int i = 0 ; i < m_Actors.Count(); i++ )
+	for ( int i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -3139,16 +3218,16 @@ CEventRelativeTag *CChoreoScene::FindTagByName( const char *wavname, const char 
 //-----------------------------------------------------------------------------
 void CChoreoScene::ExportEvents( const char *filename, CUtlVector< CChoreoEvent * >& events )
 {
-	if ( events.Count() <= 0 )
+	if ( events.Size() <= 0 )
 		return;
 
 	// Create a serialization buffer
 	CUtlBuffer buf( 0, 0, CUtlBuffer::TEXT_BUFFER );
-	FilePrintf( buf, 0, "// Choreo version 1:  <%i> Exported Events\n", events.Count() );
+	FilePrintf( buf, 0, "// Choreo version 1:  <%i> Exported Events\n", events.Size() );
 
 	// Save out the selected events.
 	int i;
-	for ( i = 0 ; i < events.Count(); i++ )
+	for ( i = 0 ; i < events.Size(); i++ )
 	{
 		CChoreoEvent *e = events[ i ];
 		if ( !e->GetActor() )
@@ -3275,7 +3354,7 @@ float CChoreoScene::SnapTime( float t )
 //-----------------------------------------------------------------------------
 void CChoreoScene::ReconcileGestureTimes()
 {
-	for ( int i = 0 ; i < m_Actors.Count(); i++ )
+	for ( int i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -3387,7 +3466,7 @@ bool CChoreoScene::Merge( CChoreoScene *other )
 
 	// Look for events that don't have actor/channel set
 	int i;
-	for ( i = 0 ; i < other->m_Events.Count(); i++ )
+	for ( i = 0 ; i < other->m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = other->m_Events[ i ];
 		if ( e->GetActor() )
@@ -3401,16 +3480,14 @@ bool CChoreoScene::Merge( CChoreoScene *other )
 		ecount++;
 	}
 
-	for ( i = 0 ; i < other->m_Actors.Count(); i++ )
+	for ( i = 0 ; i < other->m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = other->m_Actors[ i ];
 
 		// See if that actor already exists
-		bool newActor = false;
 		CChoreoActor *destActor = FindActor( a->GetName() );
 		if ( !destActor )
 		{
-			newActor = true;
 			destActor = AllocActor();
 			*destActor = *a;
 			destActor->RemoveAllChannels();
@@ -3472,7 +3549,7 @@ bool CChoreoScene::Merge( CChoreoScene *other )
 //-----------------------------------------------------------------------------
 void CChoreoScene::ReconcileCloseCaption()
 {
-	for ( int i = 0 ; i < m_Actors.Count(); i++ )
+	for ( int i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )
@@ -3507,7 +3584,7 @@ void CChoreoScene::SetFileName( char const *fn )
 
 bool CChoreoScene::GetPlayingSoundName( char *pchBuff, int iBuffLength )
 {
-	for ( int i = 0; i < m_Events.Count(); i++ )
+	for ( int i = 0; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetType() == CChoreoEvent::SPEAK && e->IsProcessing() )
@@ -3525,7 +3602,7 @@ bool CChoreoScene::GetPlayingSoundName( char *pchBuff, int iBuffLength )
 //-----------------------------------------------------------------------------
 bool CChoreoScene::HasUnplayedSpeech()
 {
-	for ( int i = 0; i < m_Events.Count(); i++ )
+	for ( int i = 0; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetType() == CChoreoEvent::SPEAK )
@@ -3544,7 +3621,7 @@ bool CChoreoScene::HasUnplayedSpeech()
 //-----------------------------------------------------------------------------
 bool CChoreoScene::HasFlexAnimation()
 {
-	for ( int i = 0; i < m_Events.Count(); i++ )
+	for ( int i = 0; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetType() == CChoreoEvent::FLEXANIMATION )
@@ -3631,7 +3708,7 @@ void CChoreoScene::SaveToBinaryBuffer( CUtlBuffer& buf, unsigned int nTextVersio
 	// Look for events that don't have actor/channel set
 	CUtlVector< CChoreoEvent * > eventList;
 	int i;
-	for ( i = 0 ; i < m_Events.Count(); i++ )
+	for ( i = 0 ; i < m_Events.Size(); i++ )
 	{
 		CChoreoEvent *e = m_Events[ i ];
 		if ( e->GetActor() )
@@ -3651,7 +3728,7 @@ void CChoreoScene::SaveToBinaryBuffer( CUtlBuffer& buf, unsigned int nTextVersio
 
 	// Now serialize the actors themselves
 	CUtlVector< CChoreoActor * >	actorList;
-	for ( i = 0 ; i < m_Actors.Count(); i++ )
+	for ( i = 0 ; i < m_Actors.Size(); i++ )
 	{
 		CChoreoActor *a = m_Actors[ i ];
 		if ( !a )

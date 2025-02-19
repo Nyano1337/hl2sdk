@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -25,11 +25,13 @@
 
 #include "stdio.h"
 
+#if 0
+
 void CBitWrite::StartWriting( void *pData, int nBytes, int iStartBit, int nBits )
 {
 	// Make sure it's dword aligned and padded.
 	Assert( (nBytes % 4) == 0 );
-	Assert(((uint32_t)pData & 3) == 0);
+	Assert(((uintp)pData & 3) == 0);
 	Assert( iStartBit == 0 );
 	m_pData = (uint32 *) pData;
 	m_pDataOut = m_pData;
@@ -107,8 +109,8 @@ void CBitWrite::WriteLongLong(int64 val)
 	// Insert the two DWORDS according to network endian
 	const short endianIndex = 0x0100;
 	byte *idx = (byte*)&endianIndex;
-	WriteUBitLong(pLongs[*idx++], sizeof(uint32_t) << 3);
-	WriteUBitLong(pLongs[*idx], sizeof(uint32_t) << 3);
+	WriteUBitLong(pLongs[*idx++], sizeof(long) << 3);
+	WriteUBitLong(pLongs[*idx], sizeof(long) << 3);
 }
 
 bool CBitWrite::WriteBits(const void *pInData, int nBits)
@@ -150,7 +152,7 @@ void CBitWrite::WriteBytes( const void *pBuf, int nBytes )
 void CBitWrite::WriteBitCoord (const float f)
 {
 	int		signbit = (f <= -COORD_RESOLUTION);
-	int		intval = (int)fabs(f);
+	int		intval = (int)abs(f);
 	int		fractval = abs((int)(f*COORD_DENOMINATOR)) & (COORD_DENOMINATOR-1);
 
 
@@ -182,7 +184,7 @@ void CBitWrite::WriteBitCoord (const float f)
 void CBitWrite::WriteBitCoordMP (const float f, bool bIntegral, bool bLowPrecision )
 {
 	int		signbit = (f <= -( bLowPrecision ? COORD_RESOLUTION_LOWPRECISION : COORD_RESOLUTION ));
-	int		intval = (int)fabs(f);
+	int		intval = (int)abs(f);
 	int		fractval = bLowPrecision ? 
 		( abs((int)(f*COORD_DENOMINATOR_LOWPRECISION)) & (COORD_DENOMINATOR_LOWPRECISION-1) ) :
 		( abs((int)(f*COORD_DENOMINATOR)) & (COORD_DENOMINATOR-1) );
@@ -381,7 +383,7 @@ bool CBitRead::Seek( int nPosition )
 			m_nBitsAvail = 1;
 		}
 		m_nInBufWord >>= ( nAdjPosition & 31 );
-		m_nBitsAvail = MIN( m_nBitsAvail, 32 - ( nAdjPosition & 31 ) );	// in case grabnextdword overflowed
+		m_nBitsAvail = min( m_nBitsAvail, 32 - ( nAdjPosition & 31 ) );	// in case grabnextdword overflowed
 	}
 	return bSucc;
 }
@@ -390,7 +392,7 @@ bool CBitRead::Seek( int nPosition )
 void CBitRead::StartReading( const void *pData, int nBytes, int iStartBit, int nBits )
 {
 // Make sure it's dword aligned and padded.
-	Assert(((uint32_t)pData & 3) == 0);
+	Assert(((uintp)pData & 3) == 0);
 	m_pData = (uint32 *) pData;
 	m_pDataIn = m_pData;
 	m_nDataBytes = nBytes;
@@ -471,8 +473,8 @@ int64 CBitRead::ReadLongLong( void )
 	// Read the two DWORDs according to network endian
 	const short endianIndex = 0x0100;
 	byte *idx = (byte*)&endianIndex;
-	pLongs[*idx++] = ReadUBitLong(sizeof(uint32_t) << 3);
-	pLongs[*idx] = ReadUBitLong(sizeof(uint32_t) << 3);
+	pLongs[*idx++] = ReadUBitLong(sizeof(long) << 3);
+	pLongs[*idx] = ReadUBitLong(sizeof(long) << 3);
 	return retval;
 }
 
@@ -483,7 +485,7 @@ void CBitRead::ReadBits(void *pOutData, int nBits)
 
 	
 	// align output to dword boundary
-	while( ((uintptr_t)pOut & 3) != 0 && nBitsLeft >= 8 )
+	while( ((uintp)pOut & 3) != 0 && nBitsLeft >= 8 )
 	{
 		*pOut = (unsigned char)ReadUBitLong(8);
 		++pOut;
@@ -496,8 +498,8 @@ void CBitRead::ReadBits(void *pOutData, int nBits)
 		// read dwords
 		while ( nBitsLeft >= 32 )
 		{
-			*((uint32_t*)pOut) = ReadUBitLong(32);
-			pOut += sizeof(uint32_t);
+			*((uint32*)pOut) = ReadUBitLong(32);
+			pOut += sizeof(uint32);
 			nBitsLeft -= 32;
 		}
 	}
@@ -711,3 +713,5 @@ void CBitRead::ReadBitAngles( QAngle& fa )
 	ReadBitVec3Coord( tmp );
 	fa.Init( tmp.x, tmp.y, tmp.z );
 }
+
+#endif

@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -21,8 +21,8 @@ class VMatrix;
 class ITexture;
 
 #define MAKE_MATERIALVAR_FOURCC(ch0, ch1, ch2, ch3)             \
-		((uint32_t)(ch0) | ((uint32_t)(ch1) << 8) |   \
-		((uint32_t)(ch2) << 16) | ((uint32_t)(ch3) << 24 ))
+		((unsigned long)(ch0) | ((unsigned long)(ch1) << 8) |   \
+		((unsigned long)(ch2) << 16) | ((unsigned long)(ch3) << 24 ))
 
 // This fourcc is reserved.
 #define FOURCC_UNKNOWN	MAKE_MATERIALVAR_FOURCC('U','N','K','N')
@@ -49,7 +49,7 @@ typedef unsigned short MaterialVarSym_t;
 class IMaterialVar
 {
 public:
-	typedef uint32_t FourCC;
+	typedef unsigned long FourCC;
 	
 protected:
 	// base data and accessors
@@ -239,7 +239,7 @@ private:
 		m_nTempIndex = nIndex;
 	}
 
-	friend void EnableThreadedMaterialVarAccess( bool bEnable, IMaterialVar **ppParams, int nVarCount );
+	friend void EnableThreadedMaterialVarAccess( bool bEnable );
 };
 
 #endif // IMATERIALVAR_H

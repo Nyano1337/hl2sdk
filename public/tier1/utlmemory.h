@@ -1,4 +1,4 @@
-//===== Copyright (c) 1996-2005, Valve Corporation, All rights reserved. ======//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -22,10 +22,9 @@
 #include "tier0/memalloc.h"
 #include "tier0/memdbgon.h"
 
-#ifdef _MSC_VER
 #pragma warning (disable:4100)
 #pragma warning (disable:4514)
-#endif
+
 
 //-----------------------------------------------------------------------------
 
@@ -46,6 +45,8 @@
 template< class T, class I = int >
 class CUtlMemory
 {
+	template< class A, class B > friend class CUtlVector;
+	template< class A, size_t B > friend class CUtlVectorFixedGrowableCompat;
 public:
 	// constructor, destructor
 	CUtlMemory( int nGrowSize = 0, int nInitSize = 0 );
@@ -92,9 +93,10 @@ public:
 	// Attaches the buffer to external memory....
 	void SetExternalBuffer( T* pMemory, int numElements );
 	void SetExternalBuffer( const T* pMemory, int numElements );
+	// Takes ownership of the passed memory, including freeing it when this buffer is destroyed.
 	void AssumeMemory( T *pMemory, int nSize );
 	T* Detach();
-	void *DetachMemory();
+	void* DetachMemory();
 
 	// Fast swap
 	void Swap( CUtlMemory< T, I > &mem );
@@ -138,7 +140,7 @@ protected:
 			const int MAX_GROW = 128;
 			if ( m_nGrowSize * sizeof(T) > MAX_GROW )
 			{
-				m_nGrowSize = V_max( 1, MAX_GROW / sizeof(T) );
+				m_nGrowSize = max( 1, MAX_GROW / sizeof(T) );
 			}
 		}
 #endif
@@ -213,7 +215,8 @@ public:
 	CUtlMemoryFixed( T* pMemory, int numElements )			{ Assert( 0 ); 										}
 
 	// Can we use this index?
-	bool IsIdxValid( int i ) const							{ return (i >= 0) && (i < SIZE); }
+	// Use unsigned math to improve performance
+	bool IsIdxValid( int i ) const							{ return (size_t)i < SIZE; }
 
 	// Specify the invalid ('null') index that we'll only return on failure
 	static const int INVALID_INDEX = -1; // For use with COMPILE_TIME_ASSERT
@@ -224,10 +227,11 @@ public:
 	const T* Base() const									{ if ( nAlignment == 0 ) return (T*)(&m_Memory[0]); else return (T*)AlignValue( &m_Memory[0], nAlignment ); }
 
 	// element access
-	T& operator[]( int i )									{ Assert( IsIdxValid(i) ); return Base()[i];	}
-	const T& operator[]( int i ) const						{ Assert( IsIdxValid(i) ); return Base()[i];	}
-	T& Element( int i )										{ Assert( IsIdxValid(i) ); return Base()[i];	}
-	const T& Element( int i ) const							{ Assert( IsIdxValid(i) ); return Base()[i];	}
+	// Use unsigned math and inlined checks to improve performance.
+	T& operator[]( int i )									{ Assert( (size_t)i < SIZE ); return Base()[i];	}
+	const T& operator[]( int i ) const						{ Assert( (size_t)i < SIZE ); return Base()[i];	}
+	T& Element( int i )										{ Assert( (size_t)i < SIZE ); return Base()[i];	}
+	const T& Element( int i ) const							{ Assert( (size_t)i < SIZE ); return Base()[i];	}
 
 	// Attaches the buffer to external memory....
 	void SetExternalBuffer( T* pMemory, int numElements )	{ Assert( 0 ); }
@@ -273,7 +277,12 @@ private:
 	char m_Memory[ SIZE*sizeof(T) + nAlignment ];
 };
 
-#ifdef _LINUX
+#if defined(POSIX)
+// From Chris Green: Memory is a little fuzzy but I believe this class did
+//	something fishy with respect to msize and alignment that was OK under our
+//	allocator, the glibc allocator, etc but not the valgrind one (which has no
+//	padding because it detects all forms of head/tail overwrite, including
+//	writing 1 byte past a 1 byte allocation).
 #define REMEMBER_ALLOC_SIZE_FOR_VALGRIND 1
 #endif
 
@@ -487,7 +496,7 @@ void CUtlMemory<T,I>::ConvertToGrowableMemory( int nGrowSize )
 
 		int nNumBytes = m_nAllocationCount * sizeof(T);
 		T *pMemory = (T*)malloc( nNumBytes );
-		memcpy( pMemory, m_pMemory, nNumBytes ); 
+		memcpy( (void*)pMemory, (void*)m_pMemory, nNumBytes ); 
 		m_pMemory = pMemory;
 	}
 	else
@@ -555,38 +564,41 @@ inline T* CUtlMemory<T,I>::Detach()
 	return (T*)DetachMemory();
 }
 
-
 //-----------------------------------------------------------------------------
 // element access
 //-----------------------------------------------------------------------------
 template< class T, class I >
 inline T& CUtlMemory<T,I>::operator[]( I i )
 {
-	Assert( !IsReadOnly() );
-	Assert( IsIdxValid(i) );
-	return m_pMemory[i];
+	// Avoid function calls in the asserts to improve debug build performance
+	Assert( m_nGrowSize != EXTERNAL_CONST_BUFFER_MARKER ); //Assert( !IsReadOnly() );
+	Assert( (uint32)i < (uint32)m_nAllocationCount );
+	return m_pMemory[(uint32)i];
 }
 
 template< class T, class I >
 inline const T& CUtlMemory<T,I>::operator[]( I i ) const
 {
-	Assert( IsIdxValid(i) );
-	return m_pMemory[i];
+	// Avoid function calls in the asserts to improve debug build performance
+	Assert( (uint32)i < (uint32)m_nAllocationCount );
+	return m_pMemory[(uint32)i];
 }
 
 template< class T, class I >
 inline T& CUtlMemory<T,I>::Element( I i )
 {
-	Assert( !IsReadOnly() );
-	Assert( IsIdxValid(i) );
-	return m_pMemory[i];
+	// Avoid function calls in the asserts to improve debug build performance
+	Assert( m_nGrowSize != EXTERNAL_CONST_BUFFER_MARKER ); //Assert( !IsReadOnly() );
+	Assert( (uint32)i < (uint32)m_nAllocationCount );
+	return m_pMemory[(uint32)i];
 }
 
 template< class T, class I >
 inline const T& CUtlMemory<T,I>::Element( I i ) const
 {
-	Assert( IsIdxValid(i) );
-	return m_pMemory[i];
+	// Avoid function calls in the asserts to improve debug build performance
+	Assert( (uint32)i < (uint32)m_nAllocationCount );
+	return m_pMemory[(uint32)i];
 }
 
 
@@ -659,10 +671,10 @@ inline int CUtlMemory<T,I>::Count() const
 template< class T, class I >
 inline bool CUtlMemory<T,I>::IsIdxValid( I i ) const
 {
-	// GCC warns if I is an unsigned type and we do a ">= 0" against it (since the comparison is always 0).
-	// We get the warning even if we cast inside the expression. It only goes away if we assign to another variable.
-	int32_t x = i;
-	return ( x >= 0 ) && ( x < m_nAllocationCount );
+	// If we always cast 'i' and 'm_nAllocationCount' to unsigned then we can
+	// do our range checking with a single comparison instead of two. This gives
+	// a modest speedup in debug builds.
+	return (uint32)i < (uint32)m_nAllocationCount;
 }
 
 //-----------------------------------------------------------------------------

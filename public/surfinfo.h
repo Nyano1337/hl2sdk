@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -19,7 +19,7 @@ class SurfInfo
 public:
 	// Shape of the surface.
 	Vector			m_Verts[ MAX_SURFINFO_VERTS ];
-	uint32_t	m_nVerts;
+	unsigned long	m_nVerts;
 
 	// Plane of the surface.
 	VPlane			m_Plane;

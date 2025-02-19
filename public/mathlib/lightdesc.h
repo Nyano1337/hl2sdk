@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -58,9 +58,7 @@ public:
 
 	void RecalculateDerivedValues(void);			 // calculate m_xxDot, m_Type for changed parms
 
-	LightDesc_t(void)
-	{
-	}
+	LightDesc_t() = default;
 
 	// constructors for various useful subtypes
 
