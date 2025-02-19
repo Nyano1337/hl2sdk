@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -87,9 +87,9 @@ public:
 	// Install a console printer
 	virtual void			InstallConsoleDisplayFunc( IConsoleDisplayFunc* pDisplayFunc ) = 0;
 	virtual void			RemoveConsoleDisplayFunc( IConsoleDisplayFunc* pDisplayFunc ) = 0;
-	virtual void			ConsoleColorPrintf( const Color& clr, const char *pFormat, ... ) const = 0;
-	virtual void			ConsolePrintf( const char *pFormat, ... ) const = 0;
-	virtual void			ConsoleDPrintf( const char *pFormat, ... ) const = 0;
+	virtual void			ConsoleColorPrintf( const Color& clr, PRINTF_FORMAT_STRING const char *pFormat, ... ) const FMTFUNCTION( 3, 4 ) = 0;
+	virtual void			ConsolePrintf( PRINTF_FORMAT_STRING const char *pFormat, ... ) const FMTFUNCTION( 2, 3 ) = 0;
+	virtual void			ConsoleDPrintf( PRINTF_FORMAT_STRING const char *pFormat, ... ) const FMTFUNCTION( 2, 3 ) = 0;
 
 	// Reverts cvars which contain a specific flag
 	virtual void			RevertFlaggedConVars( int nFlag ) = 0;
@@ -114,7 +114,7 @@ public:
 	/// Iteration over all cvars. 
 	/// (THIS IS A SLOW OPERATION AND YOU SHOULD AVOID IT.)
 	/// usage: 
-	/// { ICVar::Iterator iter(g_pCVar); 
+	/// { ICvar::Iterator iter(g_pCVar); 
 	///   for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 	///   {  
 	///       ConCommandBase *cmd = iter.Get();

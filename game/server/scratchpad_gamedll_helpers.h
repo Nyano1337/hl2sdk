@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -27,12 +27,12 @@ class IScratchPad3D;
 // flags is a combination of the SPDRAWWORLD_ flags.
 void ScratchPad_DrawWorldToScratchPad(
 	IScratchPad3D *pPad,
-	uint32_t flags );
+	unsigned long flags );
 
 // Draw a specific entity into the scratch pad.
 void ScratchPad_DrawEntityToScratchPad(
 	IScratchPad3D *pPad,
-	uint32_t flags,
+	unsigned long flags,
 	CBaseEntity *pEnt,
 	const Vector &vColor );
 

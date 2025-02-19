@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: VCR mode records a client's game and allows you to 
 //			play it back and reproduce it exactly. When playing it back, nothing
@@ -24,8 +24,8 @@
 #include "tier0/vcr_shared.h"
 #include "tier0/dbg.h"
 
-#if defined _LINUX || defined __APPLE__
-DBG_INTERFACE void BuildCmdLine( int argc, tchar **argv );
+#ifdef POSIX
+DBG_INTERFACE const char *BuildCmdLine( int argc, char **argv, bool fAddSteam = true );
 tchar *GetCommandLine();
 #endif
 
@@ -67,6 +67,11 @@ enum VCRMode_t
 	VCR_Playback
 };
 
+#ifdef PLATFORM_64BITS
+typedef uint64 VCRThreadId_t;
+#else
+typedef uint32 VCRThreadId_t;
+#endif
 
 //-----------------------------------------------------------------------------
 // Functions.
@@ -139,18 +144,18 @@ typedef struct VCR_s
 	tchar*		(*Hook_GetCommandLine)();
 
 	// Registry hooks.
-	int32_t		(*Hook_RegOpenKeyEx)( void *hKey, const tchar *lpSubKey, uint32_t ulOptions, uint32_t samDesired, void *pHKey );
-	int32_t		(*Hook_RegSetValueEx)(void *hKey, tchar const *lpValueName, uint32_t Reserved, uint32_t dwType, uint8 const *lpData, uint32_t cbData);
-	int32_t		(*Hook_RegQueryValueEx)(void *hKey, tchar const *lpValueName, uint32_t *lpReserved, uint32_t *lpType, uint8 *lpData, uint32_t *lpcbData);
-	int32_t		(*Hook_RegCreateKeyEx)(void *hKey, tchar const *lpSubKey, uint32_t Reserved, tchar *lpClass, uint32_t dwOptions, uint32_t samDesired, void *lpSecurityAttributes, void *phkResult, uint32_t *lpdwDisposition);
+	long		(*Hook_RegOpenKeyEx)( void *hKey, const tchar *lpSubKey, unsigned long ulOptions, unsigned long samDesired, void *pHKey );
+	long		(*Hook_RegSetValueEx)(void *hKey, tchar const *lpValueName, unsigned long Reserved, unsigned long dwType, uint8 const *lpData, unsigned long cbData);
+	long		(*Hook_RegQueryValueEx)(void *hKey, tchar const *lpValueName, unsigned long *lpReserved, unsigned long *lpType, uint8 *lpData, unsigned long *lpcbData);
+	long		(*Hook_RegCreateKeyEx)(void *hKey, tchar const *lpSubKey, unsigned long Reserved, tchar *lpClass, unsigned long dwOptions, unsigned long samDesired, void *lpSecurityAttributes, void *phkResult, unsigned long *lpdwDisposition);
 	void		(*Hook_RegCloseKey)(void *hKey);
 
 	// hInput is a HANDLE.
-	int			(*Hook_GetNumberOfConsoleInputEvents)( void *hInput, uint32_t *pNumEvents );
+	int			(*Hook_GetNumberOfConsoleInputEvents)( void *hInput, unsigned long *pNumEvents );
 
 	// hInput is a HANDLE.
 	// pRecs is an INPUT_RECORD pointer.
-	int			(*Hook_ReadConsoleInput)( void *hInput, void *pRecs, int nMaxRecs, uint32_t *pNumRead );
+	int			(*Hook_ReadConsoleInput)( void *hInput, void *pRecs, int nMaxRecs, unsigned long *pNumRead );
 
 	
 	// This calls time() then gives you localtime()'s result.
@@ -186,19 +191,19 @@ typedef struct VCR_s
 	// This mirrors the Windows API CreateThread function and returns a HANDLE the same way.
 	void*		(*Hook_CreateThread)( 
 		void *lpThreadAttributes,
-		uint32_t dwStackSize,
+		unsigned long dwStackSize,
 		void *lpStartAddress,
 		void *lpParameter,
-		uint32_t dwCreationFlags,
-		uint32_t *lpThreadID );
+		unsigned long dwCreationFlags,
+		VCRThreadId_t *lpThreadID );
 	
-	uint32_t (*Hook_WaitForSingleObject)(
+	unsigned long (*Hook_WaitForSingleObject)(
 		void *handle,
-		uint32_t dwMilliseconds );
+		unsigned long dwMilliseconds );
 
 	void		(*Hook_EnterCriticalSection)( void *pCS );
 
-	void		(*Hook_Time)( int32_t *pTime );
+	void		(*Hook_Time)( long *pTime );
 
 	// String value. Playback just verifies that the incoming string is the same as it was when recording.
 	void		(*GenericString)( const char *pEventName, const char *pString );
@@ -206,7 +211,7 @@ typedef struct VCR_s
 	// Works like GenericValue, except upon playback it will verify that pData's contents are the same as it was during recording.
 	void		(*GenericValueVerify)( const tchar *pEventName, const void *pData, int maxLen );
 
-	uint32_t (*Hook_WaitForMultipleObjects)( uint32 nHandles, const void **pHandles, int bWaitAll, uint32 timeout );
+	unsigned long (*Hook_WaitForMultipleObjects)( uint32 nHandles, const void **pHandles, int bWaitAll, uint32 timeout );
 
 } VCR_t;
 

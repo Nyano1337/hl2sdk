@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -518,7 +518,7 @@ class Vector48
 {
 public:
 	// Construction/destruction:
-	Vector48(void) {}
+	Vector48() = default;
 	Vector48(vec_t X, vec_t Y, vec_t Z) { x.SetFloat( X ); y.SetFloat( Y ); z.SetFloat( Z ); }
 
 	// assignment

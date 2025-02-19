@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -15,7 +15,7 @@
 
 void ScratchPad_DrawWorldToScratchPad(
 	IScratchPad3D *pPad,
-	uint32_t flags )
+	unsigned long flags )
 {
 	pPad->SetRenderState( IScratchPad3D::RS_FillMode, IScratchPad3D::FillMode_Wireframe );
 
@@ -52,7 +52,7 @@ void ScratchPad_DrawWorldToScratchPad(
 
 void ScratchPad_DrawEntityToScratchPad(
 	IScratchPad3D *pPad,
-	uint32_t flags,
+	unsigned long flags,
 	CBaseEntity *pEnt,
 	const Vector &vColor )
 {

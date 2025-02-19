@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -18,9 +18,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#ifdef _WIN32
 #pragma warning (disable : 4700) // local variable 'x' used without having been initialized
-#endif
 
 // ------------------------------------------------------------------------------------------- //
 // Helper functions.

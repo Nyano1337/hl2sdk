@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -24,6 +24,15 @@ class CBaseEntity;
 class CTakeDamageInfo
 {
 public:
+
+	enum ECritType
+	{
+		CRIT_NONE = 0,
+		CRIT_MINI,
+		CRIT_FULL,
+	};
+
+
 	DECLARE_CLASS_NOBASE( CTakeDamageInfo );
 
 					CTakeDamageInfo();
@@ -97,14 +106,6 @@ public:
 	void			Set( CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBaseEntity *pWeapon, float flDamage, int bitsDamageType, int iKillType = 0 );
 	void			Set( CBaseEntity *pInflictor, CBaseEntity *pAttacker, const Vector &damageForce, const Vector &damagePosition, float flDamage, int bitsDamageType, int iKillType = 0, Vector *reportedPosition = NULL );
 	void			Set( CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBaseEntity *pWeapon, const Vector &damageForce, const Vector &damagePosition, float flDamage, int bitsDamageType, int iKillType = 0, Vector *reportedPosition = NULL );
-	
-	enum ECritType
-	{
-		kCritType_None,
-		kCritType_MiniCrit,
-		kCritType_Crit,
-	};
-	void			SetCritType( ECritType type );
 
 	void			AdjustPlayerDamageInflictedForSkillLevel();
 	void			AdjustPlayerDamageTakenForSkillLevel();
@@ -113,6 +114,9 @@ public:
 	// For designer debug output.
 	static void		DebugGetDamageTypeString(unsigned int DamageType, char *outbuf, int outbuflength );
 
+	void			SetCritType( ECritType eType ); 
+
+	ECritType		GetCritType() const { return m_eCritType; }
 
 //private:
 	void			CopyDamageToBaseDamage();
@@ -140,7 +144,7 @@ protected:
 	bool			m_bForceFriendlyFire;	// Ideally this would be a dmg type, but we can't add more
 
 	float			m_flDamageForForce;
-	
+
 	ECritType		m_eCritType;
 
 	DECLARE_SIMPLE_DATADESC();

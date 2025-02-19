@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:
 //
@@ -51,8 +51,6 @@ public:
 	CValObject *PValObjectFirst( void ) { return m_pValObjectFirst; };
 
 	void Validate( CValidator &validator, tchar *pchName );		// Validate our internal structures
-
-	BOOL IsClaimed(void const *) const;
 
 
 private:
