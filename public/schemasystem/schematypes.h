@@ -352,7 +352,6 @@ struct SchemaClassInfoData_t
 	int m_nSize;
 	
 	uint16 m_nFieldCount;
-	uint16 m_nStaticFieldCount;
 	uint16 m_nStaticMetadataCount;
 	
 	uint8 m_nAlignment;
@@ -362,7 +361,6 @@ struct SchemaClassInfoData_t
 	uint16 m_nSingleInheritanceDepth;
 	
 	SchemaClassFieldData_t* m_pFields;
-	SchemaStaticFieldData_t* m_pStaticFields;
 	SchemaBaseClassInfoData_t* m_pBaseClasses;
 	datamap_t* m_pDataDescMap;
 	SchemaMetadataEntryData_t* m_pStaticMetadata;
