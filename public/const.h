@@ -152,7 +152,6 @@ enum MoveType_t : unsigned char
 	MOVETYPE_PUSH,				// no clip to world, push and crush
 	MOVETYPE_NOCLIP,			// No gravity, no collisions, still do velocity/avelocity
 	MOVETYPE_OBSERVER,			// Observer movement, depends on player's observer mode
-	MOVETYPE_LADDER,			// Used by players only when going onto a ladder
 	MOVETYPE_CUSTOM,			// Allows the entity to describe its own physics
 
 	// should always be defined as the last item in the list
