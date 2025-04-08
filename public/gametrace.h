@@ -98,8 +98,6 @@ public:
 	float m_softContactFrequency;
 	float m_softContactDampingRatio;
 	float m_wheelDrag;
-	float m_heatConductivity;
-	float m_flashpoint;
 };
 
 class CPhysSurfacePropertiesSoundNames
@@ -124,6 +122,7 @@ public:
 	CUtlString m_meleeImpact;
 	CUtlString m_pushOff;
 	CUtlString m_skidStop;
+	CUtlString m_resonant;
 };
 
 class CPhysSurfacePropertiesAudio
