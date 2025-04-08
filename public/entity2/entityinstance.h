@@ -105,8 +105,10 @@ private:
 	void* m_hPrivateScope; // 0x18 - CEntityPrivateScriptScope
 public:
 	CEntityKeyValues* m_pKeyValues; // 0x20
-	CScriptComponent* m_CScriptComponent; // 0x28
-	bool m_bVisibleinPVS; // 0x30
+private:
+	uint8 pad[8];
+public:
+	CScriptComponent* m_CScriptComponent; // 0x30
 };
 
 // -------------------------------------------------------------------------------------------------- //
