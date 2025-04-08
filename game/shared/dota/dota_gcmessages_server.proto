@@ -277,6 +277,7 @@ message CMsgGameMatchSignOut {
 			repeated .CMsgTrackedStat player_tracked_stats = 80;
 			optional uint32 predicted_rank = 81;
 			optional uint32 selected_facet = 82;
+			optional uint32 enhancement_level = 83;
 		}
 
 		repeated .CMsgGameMatchSignOut.CTeam.CPlayer players = 1;
@@ -1435,6 +1436,13 @@ message CMsgSteamLearnNeutralItemPurchase {
 	optional bool is_using_dota_plus = 4;
 }
 
+message CMsgSteamLearnNeutralItemPurchaseV2 {
+	optional uint32 tier = 1;
+	optional int32 trinket_id = 2 [default = -1];
+	optional int32 enhancement_id = 3 [default = -1];
+	optional int32 previous_trinket_id = 4 [default = -1];
+}
+
 message CMsgSteamLearnAbilitySkill {
 	optional int32 ability_id = 1 [default = -1];
 	repeated int32 skilled_abilities = 2 [(steamlearn_count) = 30];
@@ -1465,6 +1473,21 @@ message CMsgSteamLearnWardPlacement {
 	optional .CMsgSteamLearnWardPlacement.Location ward_loc = 1;
 	repeated .CMsgSteamLearnWardPlacement.Location existing_ward_locs = 2 [(steamlearn_count) = 6];
 	optional uint32 team = 3;
+}
+
+message CMsgSteamLearnPlayerMatchState {
+	optional uint32 net_worth = 1;
+	optional uint32 level = 2;
+	optional uint32 deaths = 3;
+	optional uint32 respawn_time = 4;
+	optional bool has_buyback = 5;
+	optional bool has_aegis = 6;
+	optional bool has_rapier = 7;
+	optional uint32 team_net_worth = 8;
+	optional uint32 enemy_team_net_worth = 9;
+	optional uint32 team_kills = 10;
+	optional uint32 enemy_team_kills = 11;
+	optional float game_time = 12;
 }
 
 message CMsgSignOutMuertaMinigame {
