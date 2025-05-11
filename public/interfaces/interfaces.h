@@ -222,6 +222,7 @@ class IPrediction2;
 class ISource2Server;
 class ISource2ServerConfig;
 class ISource2Host;
+class ISource2ModTools;
 class ISource2GameClients;
 class ISource2GameEntities;
 class IEngineServiceMgr;
@@ -494,6 +495,9 @@ DECLARE_TIER3_INTERFACE( ISource2ServerConfig, g_pSource2ServerConfig );
 
 #define SOURCE2HOST_INTERFACE_VERSION		"Source2Host001"
 DECLARE_TIER3_INTERFACE( ISource2Host, g_pSource2Host );
+
+#define SOURCE2MODTOOLS_INTERFACE_VERSION		"Source2ModTools001"
+DECLARE_TIER3_INTERFACE( ISource2ModTools, g_pSource2ModTools );
 
 #define SOURCE2GAMECLIENTS_INTERFACE_VERSION		"Source2GameClients001"
 DECLARE_TIER3_INTERFACE( ISource2GameClients, g_pSource2GameClients );

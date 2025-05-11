@@ -88,6 +88,7 @@ IPrediction2 *g_pClientSidePrediction;
 ISource2Server *g_pSource2Server;
 ISource2ServerConfig *g_pSource2ServerConfig;
 ISource2Host *g_pSource2Host;
+ISource2ModTools *g_pSource2ModTools;
 ISource2GameClients *g_pSource2GameClients;
 ISource2GameEntities *g_pSource2GameEntities;
 IEngineServiceMgr *g_pEngineServiceMgr;
@@ -215,6 +216,7 @@ static const InterfaceGlobals_t g_pInterfaceGlobals[] =
 	{ SOURCE2CLIENTPREDICTION_INTERFACE_VERSION, &g_pClientSidePrediction },
 	{ SOURCE2SERVER_INTERFACE_VERSION, &g_pSource2Server },
 	{ SOURCE2HOST_INTERFACE_VERSION, &g_pSource2Host },
+	{ SOURCE2MODTOOLS_INTERFACE_VERSION, &g_pSource2ModTools },
 	{ SOURCE2GAMECLIENTS_INTERFACE_VERSION, &g_pSource2GameClients },
 	{ SOURCE2GAMEENTITIES_INTERFACE_VERSION, &g_pSource2GameEntities },
 	{ ENGINESERVICEMGR_INTERFACE_VERSION, &g_pEngineServiceMgr },
