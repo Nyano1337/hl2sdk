@@ -95,7 +95,6 @@ public:
 		m_thickness = 0.1f;
 		m_softContactFrequency = 0.0f;
 		m_softContactDampingRatio = 0.0f;
-		m_wheelDrag = 0.0f;
 	}
 	
 public:
@@ -105,7 +104,20 @@ public:
 	float m_thickness;
 	float m_softContactFrequency;
 	float m_softContactDampingRatio;
+};
+
+class CPhysSurfacePropertiesVehicle
+{
+public:
+	CPhysSurfacePropertiesVehicle()
+	{
+		m_wheelDrag = 0.0f;
+		m_wheelFrictionScale = 0.0f;
+	}
+
+public:
 	float m_wheelDrag;
+	float m_wheelFrictionScale;
 };
 
 class CPhysSurfacePropertiesSoundNames
@@ -176,6 +188,7 @@ public:
 	bool m_bHidden;
 	CUtlString m_description;
 	CPhysSurfacePropertiesPhysics m_physics;
+	CPhysSurfacePropertiesVehicle m_vehicleParams;
 	CPhysSurfacePropertiesSoundNames m_audioSounds;
 	CPhysSurfacePropertiesAudio m_audioParams;
 };
