@@ -18,6 +18,7 @@
 #include "tier0/memalloc.h"
 #include "convar.h"
 #include <cstdint>
+#include <functional>
 
 // Shorthand helper to iterate registered convars
 // Example usage:
@@ -42,10 +43,12 @@
 struct ConVarSnapshot_t;
 class KeyValues;
 
+typedef std::function<void( FnGenericChangeCallbackProvider_t, FnGenericChangeCallback_t )> FnCvarCallbacksReader_t;
+
 //-----------------------------------------------------------------------------
 // Called when a ConVar changes value
 //-----------------------------------------------------------------------------
-typedef void(*FnChangeCallbackGlobal_t)(ConVarRefAbstract* ref, CSplitScreenSlot nSlot, const char *pNewValue, const char *pOldValue);
+typedef void(*FnChangeCallbackGlobal_t)(ConVarRefAbstract* ref, CSplitScreenSlot nSlot, const char *pNewValue, const char *pOldValue, void *__unk01);
 
 //-----------------------------------------------------------------------------
 // ConVar & ConCommand creation listener callbacks
@@ -67,7 +70,10 @@ public:
 	virtual ConVarRef		FindConVar( const char *name, bool allow_defensive = false ) = 0;
 	virtual ConVarRef		FindFirstConVar() = 0;
 	virtual ConVarRef		FindNextConVar( ConVarRef prev ) = 0;
-	virtual void			CallChangeCallback( ConVarRef cvar, const CSplitScreenSlot nSlot, const CVValue_t* pNewValue, const CVValue_t* pOldValue ) = 0;
+
+	virtual void			CallChangeCallback( ConVarRef cvar, const CSplitScreenSlot nSlot, const CVValue_t* pNewValue, const CVValue_t* pOldValue, void *__unk01 = nullptr ) = 0;
+	// Would call cb for every change callback defined for this cvar
+	virtual void			IterateConVarCallbacks( ConVarRef cvar, FnCvarCallbacksReader_t cb ) = 0;
 
 	// allow_defensive - Allows finding commands with FCVAR_DEFENSIVE flag
 	virtual ConCommandRef	FindConCommand( const char *name, bool allow_defensive = false ) = 0;
@@ -78,7 +84,7 @@ public:
 	// Install a global change callback (to be called when any convar changes) 
 	virtual void			InstallGlobalChangeCallback( FnChangeCallbackGlobal_t callback ) = 0;
 	virtual void			RemoveGlobalChangeCallback( FnChangeCallbackGlobal_t callback ) = 0;
-	virtual void			CallGlobalChangeCallbacks( ConVarRefAbstract* ref, CSplitScreenSlot nSlot, const char* newValue, const char* oldValue ) = 0;
+	virtual void			CallGlobalChangeCallbacks( ConVarRefAbstract* ref, CSplitScreenSlot nSlot, const char* newValue, const char* oldValue, void *__unk01 = nullptr ) = 0;
 
 	// Reverts cvars to default values which contain a specific flag,
 	// cvars with a flag FCVAR_COMMANDLINE_ENFORCED would be skipped
@@ -106,6 +112,12 @@ public:
 	// Removes FCVAR_DEVELOPMENTONLY | FCVAR_DEFENSIVE from all cvars and concommands
 	// that have FCVAR_DEFENSIVE set
 	virtual void				StripDevelopmentFlags() = 0;
+	
+	// Returns total bytesize needed to store all the FCVAR_USERINFO cvar values
+	virtual int					GetTotalUserInfoCvarsByteSize() = 0;
+	// Copies default values of all cvars which have FCVAR_USERINFO flag to the buffer in a byte range from->to
+	// if copy_or_cleanup is true, if false would cleanup the buffer
+	virtual void				CopyUserInfoCvarDefaults( uint8* buffer, int from, int to, bool copy_or_cleanup ) = 0;
 
 	// Register, unregister vars
 	virtual void				RegisterConVar( const ConVarCreation_t& setup, uint64 nAdditionalFlags, ConVarRef* pCvarRef, ConVarData** pCvarData ) = 0;
@@ -129,7 +141,7 @@ public:
 	virtual ConCommandData*		GetConCommandData( ConCommandRef cmd ) = 0;
 
 	// Queues up value (creates a copy of it) to be set when convar is ready to be edited
-	virtual void				QueueThreadSetValue( ConVarRefAbstract* ref, CSplitScreenSlot nSlot, CVValue_t* value ) = 0;
+	virtual void				QueueThreadSetValue( ConVarRefAbstract* ref, CSplitScreenSlot nSlot, void* __unk01, CVValue_t* value ) = 0;
 };
 
 #include "memdbgon.h"
@@ -188,7 +200,7 @@ public:
 
 	struct CConVarChangeCallbackNode_t
 	{
-		FnGenericChangeCallback_t m_pProviderCallBack;
+		FnGenericChangeCallbackProvider_t m_pProviderCallBack;
 		FnGenericChangeCallback_t m_pCallback;
 
 		// Register index of cvar which change cb comes from
@@ -209,6 +221,7 @@ public:
 	{
 		ConVarRefAbstract *m_ConVar;
 		CSplitScreenSlot m_Slot;
+		void *m_unk001;
 		CVValue_t *m_Value;
 	};
 
@@ -242,6 +255,8 @@ public:
 
 	CUtlVector<ConVarRef> m_SetToDefaultValueQueue;
 	bool m_LockDefaultValueInit;
+
+	int m_UserInfoCvarsTotalByteSize;
 
 	CConCommandMemberAccessor<CCvar> m_FindCmd;
 	CConCommandMemberAccessor<CCvar> m_DumpChannelsCmd;
