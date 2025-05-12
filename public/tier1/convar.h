@@ -607,7 +607,16 @@ private:
 	void Destroy( );
 };
 
-using FnGenericChangeCallback_t = void(*)(ConVarRefAbstract* ref, CSplitScreenSlot nSlot, const CVValue_t* pNewValue, const CVValue_t* pOldValue);
+template <typename T>
+class CConVar;
+
+template <typename T>
+using FnTypedChangeCallback_t = void (*)(CConVar<T> *cvar, CSplitScreenSlot nSlot, const T *pNewValue, const T *pOldValue);
+template <typename T>
+using FnTypedChangeCallbackProvider_t = void(*)(CConVar<T> *cvar, CSplitScreenSlot slot, const T *pNewValue, const T *pOldValue, void *__unk01, FnTypedChangeCallback_t<T> cb);
+
+using FnGenericChangeCallback_t = void(*)(ConVarRefAbstract *ref, CSplitScreenSlot nSlot, const CVValue_t *pNewValue, const CVValue_t *pOldValue);
+using FnGenericChangeCallbackProvider_t = void(*)(ConVarRefAbstract *ref, CSplitScreenSlot nSlot, const CVValue_t *pNewValue, const CVValue_t *pOldValue, void *__unk01, FnGenericChangeCallback_t cb);
 
 struct ConVarValueInfo_t
 {
@@ -642,6 +651,19 @@ struct ConVarValueInfo_t
 	{
 		m_bHasMax = true;
 		*reinterpret_cast<T *>(m_maxValue) = max;
+	}
+
+	template <typename T>
+	void SetCallback( FnTypedChangeCallback_t<T> cb )
+	{
+		if(cb)
+		{
+			m_fnProviderCallBack = []( ConVarRefAbstract *ref, CSplitScreenSlot nSlot, const CVValue_t *pNewValue, const CVValue_t *pOldValue, void *__unk01, FnGenericChangeCallback_t cb ) {
+				reinterpret_cast<FnTypedChangeCallback_t<T>>(cb)(reinterpret_cast<CConVar<T> *>(ref), nSlot, reinterpret_cast<const T *>(pNewValue), reinterpret_cast<const T *>(pOldValue));
+			};
+
+			m_fnCallBack = reinterpret_cast<FnGenericChangeCallback_t>(cb);
+		}
 	}
 
 	int32 m_Version;
@@ -858,6 +880,7 @@ public:
 
 	int GetGameInfoFlags() const { return m_GameInfoFlags; }
 	int GetCallbackIndex() const { return m_iCallbackIndex; }
+	int GetUserInfoByteIndex() const { return m_UserInfoByteIndex; }
 
 	int GetMaxSplitScreenSlots() const;
 
@@ -945,10 +968,11 @@ private:
 	unsigned int m_iCallbackIndex;
 
 	int m_GameInfoFlags;
+	int m_UserInfoByteIndex;
 
 	// At convar registration this is trimmed to better match convar type being used
 	// or if it was initialized as EConVarType_Invalid it would be of this size
-	uint8 m_Values[sizeof( CVValue_t ) * MAX_SPLITSCREEN_CLIENTS];
+	alignas( CVValue_t ) uint8 m_Values[sizeof( CVValue_t ) * MAX_SPLITSCREEN_CLIENTS];
 };
 
 static ConVarData *GetInvalidConVarData( EConVarType type )
