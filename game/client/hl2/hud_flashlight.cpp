@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -96,8 +96,8 @@ void CHudFlashlight::SetFlashlightState( bool flashlightOn )
 	m_bFlashlightOn = flashlightOn;
 }
 
-#define WCHAR_FLASHLIGHT_ON  (L'©')
-#define WCHAR_FLASHLIGHT_OFF (L'®')
+#define WCHAR_FLASHLIGHT_ON  (L'Â©')
+#define WCHAR_FLASHLIGHT_OFF (L'Â®')
 
 //-----------------------------------------------------------------------------
 // Purpose: draws the flashlight icon

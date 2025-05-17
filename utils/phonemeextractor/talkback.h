@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -8,7 +8,7 @@
 // =============================================================================
 // Interface to the LIPSinc TalkBack 1.1 library (TalkBack_*.lib).
 //
-// Copyright © 1998-2002 LIPSinc. All rights reserved.
+// Copyright Â© 1998-2002 LIPSinc. All rights reserved.
 
 #if !defined(TalkBack_h)
 #define TalkBack_h

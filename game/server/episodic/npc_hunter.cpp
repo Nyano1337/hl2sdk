@@ -1,4 +1,4 @@
-//==== Copyright © 1996-2007, Valve Corporation, All rights reserved. =========
+//==== Copyright Â© 1996-2007, Valve Corporation, All rights reserved. =========
 //
 // Small, fast version of the strider. Goes where striders cannot, such
 // as into buildings. Best killed with physics objects and explosives.
