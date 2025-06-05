@@ -1117,7 +1117,10 @@ PLATFORM_INTERFACE void				Plat_ExitProcess( int nCode );
 
 PLATFORM_INTERFACE bool				Plat_ShouldCollectMiniDumpsForFatalErrors();
 
-PLATFORM_INTERFACE void				Plat_FatalErrorFunc( const tchar* pMsg, ... ) FMTFUNCTION( 1, 2 );
+PLATFORM_INTERFACE void				Plat_NonFatalErrorFunc( const tchar *pMsg, ... ) FMTFUNCTION( 1, 2 );
+
+#define Plat_FatalError( ... ) do { Log_Error( LOG_GENERAL, ##__VA_ARGS__ ); Plat_ExitProcess( EXIT_FAILURE ); } while( 0 )
+#define Plat_FatalErrorFunc
 
 // b/w compatibility
 #define Sys_FloatTime Plat_FloatTime
@@ -1785,9 +1788,12 @@ template < size_t NUM, class T > struct AlignedByteArray_t : public AlignedByteA
 	struct ALIGN_N( ALIGN ) AlignedByteArrayExplicit_t< NUM, T, ALIGN > \
 	{ \
 		/* NOTE: verify alignment in the constructor (which may be wrong if this is heap-allocated, for ALIGN > MEMALLOC_MAX_AUTO_ALIGN) */ \
-		AlignedByteArrayExplicit_t()	{ if ( (ALIGN-1) & (size_t)this ) { DebuggerBreakIfDebugging(); } } \
+		AlignedByteArrayExplicit_t()	{ if ( (ALIGN-1) & (size_t)this ) { Plat_NonFatalErrorFunc( "AlignedByteArray not properly aligned\n" ); } } \
 		T *			Base( void )		{ ValidateAlignmentExplicit<T,ALIGN>(); return (T *)&m_Data; } \
 		const T *	Base( void ) const	{ ValidateAlignmentExplicit<T,ALIGN>(); return (const T *)&m_Data; } \
+		size_t		Count() const		{ return NUM; } \
+		T &operator[]( int i )				{ return Base()[i]; } \
+		const T &operator[]( int i ) const	{ return Base()[i]; } \
 	private: \
 		byte m_Data[ NUM*sizeof( T ) ]; \
 	} ALIGN_N_POST( ALIGN );
