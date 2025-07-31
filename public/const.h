@@ -12,6 +12,8 @@
 #pragma once
 #endif
 
+#include "platform.h"
+
 // the command line param that tells the engine to use steam
 #define STEAM_PARM					"-steam"
 // the command line param to tell dedicated server to restart 
