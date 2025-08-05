@@ -2,6 +2,7 @@ import "networkbasetypes.proto";
 import "citadel_gcmessages_common.proto";
 
 enum ECitadelClientMessages {
+	CITADEL_CM_CancelAbility = 1001;
 	CITADEL_CM_MapPing = 1002;
 	CITADEL_CM_PerformanceStats = 1003;
 	CITADEL_CM_PingWheel = 1004;
@@ -13,11 +14,14 @@ enum ECitadelClientMessages {
 	CITADEL_CM_AbilityPing = 1010;
 	CITADEL_CM_ExecuteMapUnitAbility = 1011;
 	CITADEL_CM_GetDamageStats = 1012;
-	CITADEL_CM_CheaterVote = 1013;
-	CITADEL_CM_MutePlayers = 1014;
 }
 
 message CCitadelClientMsg_Pause {
+}
+
+message CCitadelClientMsg_CancelAbilities {
+	optional bool casts = 1;
+	optional bool channels = 2;
 }
 
 message CCitadelClientMsg_MapPing {
@@ -108,13 +112,4 @@ message CCitadelClientCachedPlayerStats {
 message CCitadelClientMsg_ExecuteMapUnitAbility {
 	optional int32 ability_entity_index = 1;
 	optional int32 target_entity_index = 2;
-}
-
-message CCitadelClientMsg_CheaterVote {
-	optional bool end_game_immediately = 1;
-}
-
-message CCitadelClientMsg_MutePlayers {
-	repeated int32 player_slots = 1;
-	optional bool unmute = 2;
 }
