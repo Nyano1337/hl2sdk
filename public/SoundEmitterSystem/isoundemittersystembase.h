@@ -1,4 +1,4 @@
-//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
+//===== Copyright ?1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -254,7 +254,7 @@ public:
 
 	// Called from both client and server (single player) or just one (server only in dedicated server and client only if connected to a remote server)
 	// Called by LevelInitPreEntity to override sound scripts for the mod with level specific overrides based on custom mapnames, etc.
-	virtual void			AddSoundOverrides( char const *scriptfile, bool bUnknown ) = 0;
+	virtual void			AddSoundOverrides( char const *scriptfile, bool bPreload = false ) = 0;
 
 	// Called by either client or server in LevelShutdown to clear out custom overrides
 	virtual void			ClearSoundOverrides() = 0;
@@ -262,7 +262,10 @@ public:
 	virtual bool			GetParametersForSoundEx( const char *soundname, HSOUNDSCRIPTHANDLE& handle, CSoundParameters& params, gender_t gender, bool isbeingemitted = false ) = 0;
 	virtual soundlevel_t	LookupSoundLevelByHandle( char const *soundname, HSOUNDSCRIPTHANDLE& handle ) = 0;
 
-	virtual void			ReloadSoundEntriesInList( IFileList *pFileList ) = 0;
+	virtual void			ReloadSoundEntriesInList( IFileList *pFilesToReload ) = 0;
+
+	// Called by either client or server to force ModShutdown and ModInit
+	virtual void			Flush() = 0;
 };
 
 #endif // ISOUNDEMITTERSYSTEMBASE_H
