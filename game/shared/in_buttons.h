@@ -27,6 +27,11 @@ enum InputBitMask_t : int64
 	IN_JOYAUTOSPRINT	= (1 << 17),
 
 	IN_FIRST_MOD_SPECIFIC_BIT = (1 << 32),
+
+	IN_USEORRELOAD		= IN_FIRST_MOD_SPECIFIC_BIT,
+	IN_SCORE			= (1 << 33), // Used by client.dll for when scoreboard is held down
+	IN_ZOOM				= (1 << 34), // Zoom key for HUD zoom
+	IN_LOOK_AT_WEAPON	= (1 << 35)
 };
 
 #endif // IN_BUTTONS_H
