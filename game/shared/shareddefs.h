@@ -159,7 +159,7 @@ enum SharedTeams_t
 	CS_TEAM_CT			= 3,
 
 	// The first team that's game specific (i.e. not unassigned / spectator)
-	FIRST_GAME_TEAM		= CS_TEAM_T
+	FIRST_GAME_TEAM = LAST_SHARED_TEAM + 1
 };
 
 #define MAX_TEAMS				32	// Max number of teams in a game
@@ -207,7 +207,7 @@ enum ItemFlagTypes_t : uint8
 #define TRACER_DONT_USE_ATTACHMENT	-1
 
 // Entity Dissolve types
-enum EntityDisolveType_t
+enum EntityDissolveType_t
 {
 	ENTITY_DISSOLVE_INVALID = -1,
 	ENTITY_DISSOLVE_NORMAL = 0,
